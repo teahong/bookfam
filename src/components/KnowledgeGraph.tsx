@@ -8,21 +8,6 @@ interface KnowledgeGraphProps {
 const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ books }) => {
     const svgRef = useRef<SVGSVGElement>(null);
 
-    // Simple customized Korean stop words for keyword extraction
-    const stopWords = new Set([
-        '이', '그', '저', '것', '수', '등', '을', '를', '은', '는', '이가', '에서', '로', '으로', '하고', '해서',
-        '있는', '없는', '되는', '하는', '입니다', '습니다', '하고', '책은', '책이', '너무', '정말', '진짜', '많이',
-        '아주', '매우', '가장', '특히', '통해', '대한', '위해', '때문', '그리고', '하지만', '그러나', '그래서'
-    ]);
-
-    const extractKeywords = (text: string): string[] => {
-        if (!text) return [];
-        // Remove special chars and split
-        const words = text.replace(/[^\w\s가-힣]/g, '').split(/\s+/);
-        const keywords = words.filter(w => w.length >= 2 && !stopWords.has(w));
-        // Return top 3 unique keywords
-        return [...new Set(keywords)].slice(0, 3);
-    };
 
     useEffect(() => {
         if (!books.length || !svgRef.current) return;

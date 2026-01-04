@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Plus, BookOpen, Star, UserPlus, LogOut, Trash2, UploadCloud, AlertCircle } from 'lucide-react';
 import KnowledgeGraph from './KnowledgeGraph';
+import { extractKeywords } from '../lib/gemini';
 
 interface MainDashboardProps {
     userName: string;
@@ -148,13 +149,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
         }
     };
 
-    const handleTitleBlur = () => {
-        if (newBook.title && !newBook.cover_url) {
-            handleSearchCover();
-        }
-    };
-
-    import { extractKeywords } from '../lib/gemini';
 
     // ... (existing imports)
 
