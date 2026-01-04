@@ -124,18 +124,21 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
         setIsAutoFilling(true);
         setAiError(null);
         try {
-            // Use Edge Function for search
-            const { data, error } = await supabase.functions.invoke('process-book', {
-                body: { type: 'search_cover', content: newBook.title }
-            });
+            // Direct Google Books API call for client-side search
+            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(newBook.title)}`);
+            const data = await response.json();
 
-            if (error) throw error;
-            if (data && data.error) throw new Error(data.error);
-
-            if (data) {
-                if (data.cover_url) setNewBook(prev => ({ ...prev, cover_url: data.cover_url }));
-                if (!newBook.author && data.author) setNewBook(prev => ({ ...prev, author: data.author }));
-                if (!newBook.publisher && data.publisher) setNewBook(prev => ({ ...prev, publisher: data.publisher }));
+            if (data.items && data.items.length > 0) {
+                const book = data.items[0].volumeInfo;
+                setNewBook(prev => ({
+                    ...prev,
+                    title: book.title || prev.title,
+                    author: book.authors ? book.authors[0] : prev.author,
+                    publisher: book.publisher || prev.publisher,
+                    cover_url: book.imageLinks ? (book.imageLinks.thumbnail || book.imageLinks.smallThumbnail).replace('http:', 'https:') : prev.cover_url
+                }));
+            } else {
+                setAiError("책을 찾을 수 없습니다.");
             }
         } catch (e: any) {
             console.error("Cover auto-fetch failed", e);
