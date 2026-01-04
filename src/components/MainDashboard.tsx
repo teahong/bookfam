@@ -291,15 +291,24 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
                         <div style={{ display: 'flex', gap: '20px', marginBottom: '15px' }}>
                             <div style={{ flex: 1 }}>
                                 <div style={{ display: 'grid', gap: '15px', marginBottom: '15px' }}>
-                                    <input
-                                        type="text"
-                                        className="input-field"
-                                        placeholder="제목 (입력 후 자동으로 표지를 찾습니다)"
-                                        value={newBook.title}
-                                        onChange={(e) => setNewBook({ ...newBook, title: e.target.value })}
-                                        onBlur={handleTitleBlur}
-                                        required
-                                    />
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <input
+                                            type="text"
+                                            className="input-field"
+                                            placeholder="제목"
+                                            value={newBook.title}
+                                            onChange={(e) => setNewBook({ ...newBook, title: e.target.value })}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearchCover(); } }}
+                                            required
+                                            style={{ flex: 1 }}
+                                        />
+                                        <button type="button" className="btn btn-primary" onClick={handleSearchCover} disabled={isAutoFilling}>
+                                            검색
+                                        </button>
+                                        <button type="button" className="btn btn-secondary" onClick={() => setNewBook({ ...newBook, title: '', author: '', publisher: '', cover_url: '' })}>
+                                            직접 입력
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
@@ -343,28 +352,46 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
 
                             {/* Cover Preview Section */}
                             <div style={{ width: '200px', flexShrink: 0 }}>
-                                <div style={{
-                                    width: '100%',
-                                    aspectRatio: '1 / 1.5',
-                                    backgroundColor: '#f8f9fa',
-                                    borderRadius: '12px',
-                                    border: '2px dashed #ced4da',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    overflow: 'hidden',
-                                    color: '#adb5bd',
-                                    flexDirection: 'column',
-                                    textAlign: 'center',
-                                    fontSize: '0.9rem',
-                                    boxShadow: 'inset 0 0 20px rgba(0,0,0,0.05)'
-                                }}>
+                                <div
+                                    style={{
+                                        width: '100%',
+                                        aspectRatio: '1 / 1.5',
+                                        backgroundColor: '#f8f9fa',
+                                        borderRadius: '12px',
+                                        border: '2px dashed #ced4da',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden',
+                                        color: '#adb5bd',
+                                        flexDirection: 'column',
+                                        textAlign: 'center',
+                                        fontSize: '0.9rem',
+                                        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.05)',
+                                        cursor: 'pointer',
+                                        position: 'relative'
+                                    }}
+                                    onClick={() => {
+                                        if (!newBook.cover_url) {
+                                            const url = prompt("이미지 주소를 입력하세요 (URL):");
+                                            if (url) setNewBook({ ...newBook, cover_url: url });
+                                        }
+                                    }}
+                                >
                                     {newBook.cover_url ? (
-                                        <img src={newBook.cover_url} alt="표지" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <>
+                                            <img src={newBook.cover_url} alt="표지" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <div
+                                                style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.5)', padding: '5px', borderRadius: '50%' }}
+                                                onClick={(e) => { e.stopPropagation(); setNewBook({ ...newBook, cover_url: '' }); }}
+                                            >
+                                                <Trash2 size={14} color="white" />
+                                            </div>
+                                        </>
                                     ) : (
                                         <>
                                             <BookOpen size={32} style={{ marginBottom: '10px', opacity: 0.5 }} />
-                                            <span>표지 없음</span>
+                                            <span>클릭하여<br />이미지 링크 입력</span>
                                         </>
                                     )}
                                 </div>
@@ -386,17 +413,46 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
                             </div>
                         </div>
 
-                        <select
-                            className="input-field"
-                            value={newBook.recommend_to}
-                            onChange={(e) => setNewBook({ ...newBook, recommend_to: e.target.value })}
-                            style={{ width: '100%', marginTop: '15px' }}
-                        >
-                            <option value="">누구에게 추천하고 싶나요?</option>
-                            {users.map(u => (
-                                <option key={u.id} value={u.name}>{u.name}</option>
-                            ))}
-                        </select>
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', marginBottom: '10px' }}>누구에게 추천하고 싶나요?</label>
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                {users.map(u => {
+                                    const isSelected = newBook.recommend_to.includes(u.name);
+                                    return (
+                                        <button
+                                            key={u.id}
+                                            type="button"
+                                            onClick={() => {
+                                                const current = newBook.recommend_to ? newBook.recommend_to.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+                                                let next;
+                                                if (isSelected) {
+                                                    next = current.filter((n: string) => n !== u.name);
+                                                } else {
+                                                    next = [...current, u.name];
+                                                }
+                                                setNewBook({ ...newBook, recommend_to: next.join(', ') });
+                                            }}
+                                            style={{
+                                                padding: '8px 16px',
+                                                borderRadius: '20px',
+                                                border: 'none',
+                                                background: isSelected ? 'var(--primary)' : '#e0e0e0',
+                                                color: isSelected ? 'white' : '#333',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                fontWeight: isSelected ? '600' : 'normal',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '5px'
+                                            }}
+                                        >
+                                            {isSelected && <UserPlus size={14} />}
+                                            {u.name}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                         <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                             <button type="button" className="btn" onClick={() => setShowAddCard(false)} style={{ flex: 1 }}>취소</button>
                             <button type="submit" className="btn btn-primary" style={{ flex: 2 }}>기록 저장하기</button>
