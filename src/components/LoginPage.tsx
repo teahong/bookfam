@@ -175,6 +175,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
                                     maxLength={1}
                                     value={digit}
                                     onChange={(e) => handlePinChange(i, e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleLoginSubmit();
+                                    }}
                                     autoFocus={i === 0}
                                 />
                             ))}
