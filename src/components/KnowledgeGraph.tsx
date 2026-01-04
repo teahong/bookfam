@@ -78,16 +78,16 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ books }) => {
                 links.push({ source: book.id, target: authorId });
             }
 
-            // 3. Keyword Nodes (Extracted from Review)
-            if (book.review_content) {
-                const keywords = extractKeywords(book.review_content);
-                keywords.forEach(keyword => {
-                    const keywordId = `kw-${keyword}`;
-                    if (!addedNodes.has(keywordId)) {
-                        nodes.push({ id: keywordId, type: "keyword", label: keyword });
-                        addedNodes.add(keywordId);
+            // 3. Keywords (From DB) - Limit to 3 per book
+            if (book.keywords && Array.isArray(book.keywords)) {
+                book.keywords.slice(0, 3).forEach((keyword: string) => {
+                    const keywordId = `keyword-${keyword}`;
+                    // Check if node already exists to avoid duplicates
+                    if (!nodes.find(n => n.id === keywordId)) {
+                        nodes.push({ id: keywordId, type: 'keyword', label: keyword }); // Changed group/name to type/label for consistency
+                        addedNodes.add(keywordId); // Add to addedNodes set
                     }
-                    links.push({ source: book.id, target: keywordId });
+                    links.push({ source: book.id, target: keywordId }); // Removed value: 1 as it's not used elsewhere
                 });
             }
 

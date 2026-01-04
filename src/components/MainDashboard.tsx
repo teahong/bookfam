@@ -154,9 +154,19 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
         }
     };
 
+    import { extractKeywords } from '../lib/gemini';
+
+    // ... (existing imports)
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const wordCount = newBook.review_content.trim().length;
+
+        // Extract keywords using AI if review content is sufficient
+        let keywords: string[] = [];
+        if (newBook.review_content.length > 20) {
+            keywords = await extractKeywords(newBook.review_content);
+        }
 
         const bookData = {
             title: newBook.title,
@@ -169,17 +179,13 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
             recommend_to: newBook.recommend_to,
             read_date: newBook.read_date,
             link: newBook.link,
-            user_id: userName // Ensure user_id is kept/set
+            user_id: userName,
+            keywords: keywords // Save extracted keywords
         };
 
-        let error;
-        if (isEditing && newBook.id) {
-            const res = await supabase.from('books').update(bookData).eq('id', newBook.id);
-            error = res.error;
-        } else {
-            const res = await supabase.from('books').insert(bookData);
-            error = res.error;
-        }
+        const { error } = isEditing && newBook.id
+            ? await supabase.from('books').update(bookData).eq('id', newBook.id)
+            : await supabase.from('books').insert(bookData);
 
         if (!error) {
             setShowAddCard(false);
