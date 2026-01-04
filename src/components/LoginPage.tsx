@@ -169,6 +169,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
                                     key={i}
                                     id={`pin-${i}`}
                                     type="password"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     className="pin-input"
                                     maxLength={1}
                                     value={digit}

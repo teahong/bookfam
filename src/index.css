@@ -197,3 +197,24 @@ select.input-field {
   background-position: right 15px center;
   background-size: 16px;
 }
+
+/* Mobile Responsive Form Layout */
+.form-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    flex-direction: column;
+  }
+
+  /* Make the cover image center and larger on mobile if needed */
+  .cover-preview-container {
+    width: 100% !important;
+    /* Override inline width */
+    max-width: 200px;
+    margin: 0 auto;
+  }
+}

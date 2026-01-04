@@ -288,7 +288,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
                             )}
                         </div>
 
-                        <div style={{ display: 'flex', gap: '20px', marginBottom: '15px' }}>
+                        <div className="form-row">
                             <div style={{ flex: 1 }}>
                                 <div style={{ display: 'grid', gap: '15px', marginBottom: '15px' }}>
                                     <div style={{ display: 'flex', gap: '10px' }}>
@@ -351,7 +351,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
                             </div>
 
                             {/* Cover Preview Section */}
-                            <div style={{ width: '200px', flexShrink: 0 }}>
+                            <div className="cover-preview-container" style={{ width: '200px', flexShrink: 0 }}>
                                 <div
                                     style={{
                                         width: '100%',
