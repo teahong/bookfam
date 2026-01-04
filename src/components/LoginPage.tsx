@@ -20,7 +20,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
     }, []);
 
     const fetchUsers = async () => {
-        const { data, error } = await supabase.from('users').select('*');
+        const { data } = await supabase.from('users').select('*');
         if (data) setUsers(data);
     };
 
