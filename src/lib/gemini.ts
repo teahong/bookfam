@@ -15,6 +15,7 @@ export const extractKeywords = async (text: string): Promise<string[]> => {
         const prompt = `
       Analyze the following book review and extract exactly 3 core keywords that represent the themes, emotions, or topics.
       Return ONLY the keywords separated by commas, no other text.
+      IMPORTANT: All keywords MUST be in Korean (Hangul).
       
       Review: "${text}"
     `;
