@@ -124,8 +124,8 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
         setIsAutoFilling(true);
         setAiError(null);
         try {
-            // Direct Google Books API call for client-side search
-            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(newBook.title)}`);
+            // Direct Google Books API call for client-side search (Restricted to Korean)
+            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(newBook.title)}&langRestrict=ko&printType=books`);
             const data = await response.json();
 
             if (data.items && data.items.length > 0) {
