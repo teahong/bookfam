@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Book, Type, ArrowLeft, Medal } from 'lucide-react';
+import { Book, Type, ArrowLeft, Medal, Trophy } from 'lucide-react';
 
 interface ChallengePageProps {
     onBack: () => void;
@@ -114,12 +114,29 @@ const ChallengePage: React.FC<ChallengePageProps> = ({ onBack }) => {
                                     textAlign: 'center',
                                     opacity: animate ? 1 : 0,
                                     transform: animate ? 'translateY(0)' : 'translateY(10px)',
-                                    transition: 'all 0.5s ease 0.5s'
+                                    transition: 'all 0.5s ease 0.5s',
+                                    position: 'relative'
                                 }}>
-                                    {rank === 0 && val > 0 && <div style={{ marginBottom: '-5px', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.2))', animation: 'bounce 2s infinite' }}><Medal size={40} color="#FFD700" fill="#FFD700" /></div>}
-                                    {rank === 1 && val > 0 && <div style={{ marginBottom: '-5px' }}><Medal size={32} color="#C0C0C0" fill="#C0C0C0" /></div>}
-                                    {rank === 2 && val > 0 && <div style={{ marginBottom: '-5px' }}><Medal size={28} color="#CD7F32" fill="#CD7F32" /></div>}
-                                    <div style={{ fontWeight: 'bold', color: '#555', fontSize: '1.1rem', marginTop: '10px' }}>
+                                    {rank === 0 && val > 0 && (
+                                        <div style={{ marginBottom: '5px', position: 'relative' }}>
+                                            <div className="glow-gold" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '50px', height: '50px', borderRadius: '50%', background: 'rgba(255, 215, 0, 0.4)', filter: 'blur(15px)', zIndex: 0 }}></div>
+                                            <Trophy size={48} color="#FFD700" fill="#FFD700" style={{ position: 'relative', zIndex: 1, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))', animation: 'bounce 2s infinite' }} />
+                                        </div>
+                                    )}
+                                    {rank === 1 && val > 0 && (
+                                        <div style={{ marginBottom: '5px', position: 'relative' }}>
+                                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(192, 192, 192, 0.3)', filter: 'blur(12px)', zIndex: 0 }}></div>
+                                            <Medal size={38} color="#C0C0C0" fill="#C0C0C0" style={{ position: 'relative', zIndex: 1, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
+                                        </div>
+                                    )}
+                                    {rank === 2 && val > 0 && (
+                                        <div style={{ marginBottom: '5px', position: 'relative' }}>
+                                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '35px', height: '35px', borderRadius: '50%', background: 'rgba(205, 127, 50, 0.2)', filter: 'blur(10px)', zIndex: 0 }}></div>
+                                            <Medal size={34} color="#CD7F32" fill="#CD7F32" style={{ position: 'relative', zIndex: 1, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
+                                        </div>
+                                    )}
+
+                                    <div style={{ fontWeight: 'bold', color: '#555', fontSize: '1.2rem', marginTop: rank === 0 ? '5px' : '10px' }}>
                                         {viewType === 'count' ? `${val}권` : `${val.toLocaleString()}자`}
                                     </div>
                                 </div>
@@ -131,17 +148,17 @@ const ChallengePage: React.FC<ChallengePageProps> = ({ onBack }) => {
                                     backgroundColor: memberColors[user.name] || '#ccc',
                                     borderRadius: '15px 15px 0 0',
                                     transition: 'height 1s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                                    boxShadow: isWinner ? '0 0 25px rgba(255, 215, 0, 0.5)' : '0 4px 10px rgba(0,0,0,0.1)',
+                                    boxShadow: isWinner ? '0 0 30px rgba(255, 215, 0, 0.4)' : '0 4px 12px rgba(0,0,0,0.08)',
                                     position: 'relative',
                                     overflow: 'hidden'
                                 }}>
                                     {/* Shine effect for winner */}
                                     {isWinner && (
                                         <div style={{
-                                            position: 'absolute', top: 0, left: '-100%', width: '50%', height: '100%',
-                                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
+                                            position: 'absolute', top: 0, left: '-100%', width: '100%', height: '100%',
+                                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
                                             transform: 'skewX(-20deg)',
-                                            animation: 'shine 3s infinite'
+                                            animation: 'shine 2.5s infinite'
                                         }}></div>
                                     )}
                                 </div>
@@ -157,14 +174,20 @@ const ChallengePage: React.FC<ChallengePageProps> = ({ onBack }) => {
             </div>
             <style>{`
                 @keyframes bounce {
-                    0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-                    40% {transform: translateY(-10px);}
-                    60% {transform: translateY(-5px);}
+                    0%, 100% {transform: translateY(0) scale(1);}
+                    50% {transform: translateY(-12px) scale(1.05);}
                 }
                 @keyframes shine {
-                    0% {left: -100%;}
-                    20% {left: 200%;}
-                    100% {left: 200%;}
+                    0% {left: -150%;}
+                    30% {left: 150%;}
+                    100% {left: 150%;}
+                }
+                .glow-gold {
+                    animation: pulse-glow 2s infinite;
+                }
+                @keyframes pulse-glow {
+                    0%, 100% {opacity: 0.5; transform: translate(-50%, -50%) scale(1);}
+                    50% {opacity: 0.8; transform: translate(-50%, -50%) scale(1.2);}
                 }
             `}</style>
         </div>

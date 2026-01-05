@@ -63,9 +63,9 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ books }) => {
                 links.push({ source: book.id, target: authorId });
             }
 
-            // 3. Keywords (From DB) - Limit to 3 per book
+            // 3. Keywords (From DB) - Limit to 5 per book
             if (book.keywords && Array.isArray(book.keywords)) {
-                book.keywords.slice(0, 3).forEach((keyword: string) => {
+                book.keywords.slice(0, 5).forEach((keyword: string) => {
                     const keywordId = `keyword-${keyword}`;
                     // Check if node already exists to avoid duplicates
                     if (!nodes.find(n => n.id === keywordId)) {
