@@ -37,7 +37,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ books }) => {
 
 
         // Prepare data
-        const nodes: any[] = [{ id: "Root", type: "root", label: "지식 창고" }];
+        const nodes: any[] = [{ id: "Root", type: "root", label: "책머리" }];
         const links: any[] = [];
         const addedNodes = new Set(["Root"]);
 
@@ -164,10 +164,10 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ books }) => {
                 <svg ref={svgRef} style={{ width: '100%', cursor: 'grab' }}></svg>
             </div>
             <div style={{ display: 'flex', gap: '15px', fontSize: '0.8rem', marginTop: '15px', justifyContent: 'center' }}>
-                <span><span style={{ color: '#6d5dfc' }}>●</span> 전집(Root)</span>
+                <span><span style={{ color: '#6d5dfc' }}>●</span> 책머리</span>
                 <span><span style={{ color: '#e91e63' }}>●</span> 도서</span>
                 <span><span style={{ color: '#f39c12' }}>●</span> 대표 저자</span>
-                <span><span style={{ color: '#00b894' }}>●</span> 키워드</span>
+                <span><span style={{ color: '#00b894' }}>●</span> 책에 대한 내 생각</span>
             </div>
         </div>
     );

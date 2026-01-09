@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, BookOpen, Star, UserPlus, LogOut, Trash2, UploadCloud, AlertCircle } from 'lucide-react';
+import { Plus, BookOpen, Star, UserPlus, LogOut, Trash2, AlertCircle } from 'lucide-react';
 import KnowledgeGraph from './KnowledgeGraph';
 import { extractKeywords } from '../lib/gemini';
 
@@ -75,47 +75,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
         }
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsAutoFilling(true);
-        setAiError(null);
-
-        // Convert to base64
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-            const base64 = reader.result?.toString().split(',')[1];
-
-            try {
-                const { data, error } = await supabase.functions.invoke('process-book', {
-                    body: { type: 'image', content: base64 }
-                });
-
-                if (data && data.error) {
-                    throw new Error(data.error);
-                }
-
-                if (data) {
-                    setNewBook(prev => ({
-                        ...prev,
-                        title: data.title || prev.title,
-                        author: data.author || prev.author,
-                        publisher: data.publisher || prev.publisher,
-                        cover_url: data.cover_url || prev.cover_url
-                    }));
-                }
-                if (error) throw error;
-            } catch (err: any) {
-                console.error("AI Error:", err);
-                const msg = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
-                setAiError('도서 정보를 가져오는데 실패했습니다: ' + msg);
-            } finally {
-                setIsAutoFilling(false);
-            }
-        };
-        reader.readAsDataURL(file);
-    };
 
     const handleSearchCover = async () => {
         if (!newBook.title) {
@@ -268,18 +227,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
                                     {isAutoFilling && !newBook.link ? '추출 중...' : '링크로 정보 추출'}
                                 </button>
 
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                    <input
-                                        type="file"
-                                        id="book-image"
-                                        accept="image/*"
-                                        style={{ display: 'none' }}
-                                        onChange={handleImageUpload}
-                                    />
-                                    <label htmlFor="book-image" className="btn" style={{ background: '#eee', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                        <UploadCloud size={18} /> 표지 사진 업로드
-                                    </label>
-                                </div>
                             </div>
                             {aiError && (
                                 <div style={{ marginTop: '10px', padding: '10px', background: '#ffebee', color: '#c62828', borderRadius: '8px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Book, Type, ArrowLeft, Medal, Trophy } from 'lucide-react';
+import { Book, Type, ArrowLeft } from 'lucide-react';
 
 interface ChallengePageProps {
     onBack: () => void;
@@ -44,10 +44,18 @@ const ChallengePage: React.FC<ChallengePageProps> = ({ onBack }) => {
     };
 
     const getRank = (name: string) => {
-        const sorted = [...stats].sort((a, b) =>
-            viewType === 'count' ? b.count - a.count : b.words - a.words
-        );
-        return sorted.findIndex(s => s.name === name);
+        const currentUser = stats.find(s => s.name === name);
+        if (!currentUser) return -1;
+
+        const currentVal = viewType === 'count' ? currentUser.count : currentUser.words;
+
+        // 자신보다 점수가 높은 사람의 수를 셉니다.
+        const higherCount = stats.filter(s => {
+            const val = viewType === 'count' ? s.count : s.words;
+            return val > currentVal;
+        }).length;
+
+        return higherCount;
     };
 
     const maxValue = Math.max(...stats.map(s => viewType === 'count' ? s.count : s.words), 1);
@@ -120,19 +128,74 @@ const ChallengePage: React.FC<ChallengePageProps> = ({ onBack }) => {
                                     {rank === 0 && val > 0 && (
                                         <div style={{ marginBottom: '5px', position: 'relative' }}>
                                             <div className="glow-gold" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '50px', height: '50px', borderRadius: '50%', background: 'rgba(255, 215, 0, 0.4)', filter: 'blur(15px)', zIndex: 0 }}></div>
-                                            <Trophy size={48} color="#FFD700" fill="#FFD700" style={{ position: 'relative', zIndex: 1, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))', animation: 'bounce 2s infinite' }} />
+                                            <img
+                                                src="/bookfam/trophy_gold.png"
+                                                alt="1등 트로피"
+                                                style={{
+                                                    width: '50px',
+                                                    height: 'auto',
+                                                    position: 'relative',
+                                                    zIndex: 1,
+                                                    filter: 'brightness(1.1) contrast(1.1)',
+                                                    animation: 'bounce 2s infinite',
+                                                    WebkitMaskImage: 'url("/bookfam/trophy_gold.png")',
+                                                    maskImage: 'url("/bookfam/trophy_gold.png")',
+                                                    WebkitMaskMode: 'luminance',
+                                                    maskMode: 'luminance',
+                                                    WebkitMaskRepeat: 'no-repeat',
+                                                    maskRepeat: 'no-repeat',
+                                                    WebkitMaskSize: 'contain',
+                                                    maskSize: 'contain'
+                                                } as React.CSSProperties}
+                                            />
                                         </div>
                                     )}
                                     {rank === 1 && val > 0 && (
                                         <div style={{ marginBottom: '5px', position: 'relative' }}>
                                             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(192, 192, 192, 0.3)', filter: 'blur(12px)', zIndex: 0 }}></div>
-                                            <Medal size={38} color="#C0C0C0" fill="#C0C0C0" style={{ position: 'relative', zIndex: 1, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
+                                            <img
+                                                src="/bookfam/trophy_gold.png"
+                                                alt="2등 트로피"
+                                                style={{
+                                                    width: '45px',
+                                                    height: 'auto',
+                                                    position: 'relative',
+                                                    zIndex: 1,
+                                                    filter: 'grayscale(1) brightness(1.2) contrast(1.1)',
+                                                    WebkitMaskImage: 'url("/bookfam/trophy_gold.png")',
+                                                    maskImage: 'url("/bookfam/trophy_gold.png")',
+                                                    WebkitMaskMode: 'luminance',
+                                                    maskMode: 'luminance',
+                                                    WebkitMaskRepeat: 'no-repeat',
+                                                    maskRepeat: 'no-repeat',
+                                                    WebkitMaskSize: 'contain',
+                                                    maskSize: 'contain'
+                                                } as React.CSSProperties}
+                                            />
                                         </div>
                                     )}
                                     {rank === 2 && val > 0 && (
                                         <div style={{ marginBottom: '5px', position: 'relative' }}>
                                             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '35px', height: '35px', borderRadius: '50%', background: 'rgba(205, 127, 50, 0.2)', filter: 'blur(10px)', zIndex: 0 }}></div>
-                                            <Medal size={34} color="#CD7F32" fill="#CD7F32" style={{ position: 'relative', zIndex: 1, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
+                                            <img
+                                                src="/bookfam/trophy_gold.png"
+                                                alt="3등 트로피"
+                                                style={{
+                                                    width: '40px',
+                                                    height: 'auto',
+                                                    position: 'relative',
+                                                    zIndex: 1,
+                                                    filter: 'sepia(1) hue-rotate(-30deg) saturate(1.5) brightness(0.8) contrast(1.1)',
+                                                    WebkitMaskImage: 'url("/bookfam/trophy_gold.png")',
+                                                    maskImage: 'url("/bookfam/trophy_gold.png")',
+                                                    WebkitMaskMode: 'luminance',
+                                                    maskMode: 'luminance',
+                                                    WebkitMaskRepeat: 'no-repeat',
+                                                    maskRepeat: 'no-repeat',
+                                                    WebkitMaskSize: 'contain',
+                                                    maskSize: 'contain'
+                                                } as React.CSSProperties}
+                                            />
                                         </div>
                                     )}
 
