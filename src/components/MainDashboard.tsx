@@ -1,27 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, BookOpen, Star, UserPlus, LogOut, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, BookOpen, Star, UserPlus, LogOut, Trash2, AlertCircle, X, ExternalLink, Pencil, Lock, Gift } from 'lucide-react';
 import KnowledgeGraph from './KnowledgeGraph';
 import { extractKeywords } from '../lib/gemini';
 
 interface MainDashboardProps {
     userName: string;
     onLogout: () => void;
+    onShowRecommended: () => void;
 }
 
-const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => {
+const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onShowRecommended }) => {
     const [books, setBooks] = useState<any[]>([]);
     const [showAddCard, setShowAddCard] = useState(false);
     const [newBook, setNewBook] = useState({
-        id: '', // Added for edit mode
+        id: '', // 수정 모드를 위한 ID 추가
         title: '', author: '', publisher: '', cover_url: '',
         rating: 5, review_content: '', recommend_to: '', link: '',
         read_date: new Date().toISOString().split('T')[0]
     });
-    const [isEditing, setIsEditing] = useState(false); // New state for edit mode
+    const [isEditing, setIsEditing] = useState(false); // 수정 모드 상태
     const [isAutoFilling, setIsAutoFilling] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
     const [users, setUsers] = useState<any[]>([]);
+
+    // 상세 보기 및 PIN 상태
+    const [selectedBook, setSelectedBook] = useState<any>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+    const [pinInput, setPinInput] = useState('');
+    const [pinError, setPinError] = useState('');
+    const [currentUserPin, setCurrentUserPin] = useState<string | null>(null);
 
     useEffect(() => {
         fetchMyBooks();
@@ -29,8 +38,12 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
     }, []);
 
     const fetchUsers = async () => {
-        const { data } = await supabase.from('users').select('id, name');
-        if (data) setUsers(data);
+        const { data } = await supabase.from('users').select('id, name, pin');
+        if (data) {
+            setUsers(data);
+            const currentUser = data.find(u => u.name === userName);
+            if (currentUser) setCurrentUserPin(currentUser.pin);
+        }
     };
 
     const fetchMyBooks = async () => {
@@ -67,7 +80,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
             }
             if (error) throw error;
         } catch (err: any) {
-            console.error("AI Error:", err);
+            console.error("AI 오류:", err);
             const msg = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
             setAiError('도서 정보를 가져오는데 실패했습니다: ' + msg);
         } finally {
@@ -84,7 +97,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
         setIsAutoFilling(true);
         setAiError(null);
         try {
-            // Direct Google Books API call for client-side search (Restricted to Korean)
+            // 직접 Google Books API 호출 (한글 검색 제한)
             const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(newBook.title)}&langRestrict=ko&printType=books`);
             const data = await response.json();
 
@@ -115,7 +128,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
         e.preventDefault();
         const wordCount = newBook.review_content.trim().length;
 
-        // Extract keywords using AI if review content is sufficient
+        // 감상문 내용이 충분하면 AI 키워드 추출
         let keywords: string[] = [];
         if (newBook.review_content.length > 20) {
             keywords = await extractKeywords(newBook.review_content);
@@ -133,7 +146,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
             read_date: newBook.read_date,
             link: newBook.link,
             user_id: userName,
-            keywords: keywords // Save extracted keywords
+            keywords: keywords // 추출된 키워드 저장
         };
 
         const { error } = isEditing && newBook.id
@@ -153,27 +166,51 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
         }
     };
 
-    const handleEditBook = (book: any) => {
+    const handleBookClick = (book: any) => {
+        setSelectedBook(book);
+        setIsDetailOpen(true);
+    };
+
+    const handleEditFromDetail = () => {
+        setIsDetailOpen(false);
         setNewBook({
-            id: book.id,
-            title: book.title || '',
-            author: book.author || '',
-            publisher: book.publisher || '',
-            cover_url: book.cover_url || '',
-            rating: book.rating || 5,
-            review_content: book.review_content || '',
-            recommend_to: book.recommend_to || '',
-            link: book.link || '',
-            read_date: book.read_date || new Date().toISOString().split('T')[0]
+            id: selectedBook.id,
+            title: selectedBook.title || '',
+            author: selectedBook.author || '',
+            publisher: selectedBook.publisher || '',
+            cover_url: selectedBook.cover_url || '',
+            rating: selectedBook.rating || 5,
+            review_content: selectedBook.review_content || '',
+            recommend_to: selectedBook.recommend_to || '',
+            link: selectedBook.link || '',
+            read_date: selectedBook.read_date || new Date().toISOString().split('T')[0]
         });
         setIsEditing(true);
         setShowAddCard(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const deleteBook = async (id: string) => {
-        const { error } = await supabase.from('books').delete().eq('id', id);
-        if (!error) fetchMyBooks();
+    const handleDeleteRequest = () => {
+        setIsPinModalOpen(true);
+        setPinInput('');
+        setPinError('');
+    };
+
+    const confirmDelete = async () => {
+        if (pinInput !== currentUserPin) {
+            setPinError('비밀번호가 일치하지 않습니다.');
+            return;
+        }
+
+        const { error } = await supabase.from('books').delete().eq('id', selectedBook.id);
+        if (!error) {
+            fetchMyBooks();
+            setIsPinModalOpen(false);
+            setIsDetailOpen(false);
+            setSelectedBook(null);
+        } else {
+            setPinError('삭제 중 오류가 발생했습니다.');
+        }
     };
 
     return (
@@ -205,7 +242,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
                 >
                     <Plus size={40} color="var(--primary)" style={{ marginBottom: '10px' }} />
                     <h3>새로운 책 등록하기</h3>
-                    <p>링크나 사진으로 간편하게 등록하세요.</p>
+                    <p>링크나 검색으로 간편하게 등록하세요.</p>
                 </div>
             ) : (
                 <div className="glass-card" style={{ marginBottom: '30px' }}>
@@ -297,7 +334,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
                                 </div>
                             </div>
 
-                            {/* Cover Preview Section */}
+                            {/* 표지 미리보기 섹션 */}
                             <div className="cover-preview-container" style={{ width: '200px', flexShrink: 0 }}>
                                 <div
                                     style={{
@@ -408,23 +445,40 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
                 </div>
             )}
 
+
             <div style={{ marginTop: '40px' }}>
-                <h3>내가 기록한 책들</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+                    <h3 style={{ margin: 0 }}>내가 기록한 책들</h3>
+                    <button
+                        onClick={onShowRecommended}
+                        className="btn-icon"
+                        style={{
+                            background: 'rgba(99, 102, 241, 0.1)', // Indigo-500 light
+                            color: '#4f46e5', // INDIGO-600
+                            border: '1px solid rgba(99, 102, 241, 0.2)',
+                            borderRadius: '20px',
+                            padding: '6px 14px',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontWeight: '600',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.03)'
+                        }}
+                    >
+                        <Gift size={15} /> 추천 받은 책들
+                    </button>
+                </div>
                 <div className="grid-family" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
                     {books.map(book => (
                         <div
                             key={book.id}
                             className="glass-card book-card"
                             style={{ padding: '20px', position: 'relative', cursor: 'pointer', display: 'flex', gap: '15px' }}
-                            onClick={() => handleEditBook(book)}
+                            onClick={() => handleBookClick(book)}
                         >
-                            <button
-                                onClick={(e) => { e.stopPropagation(); deleteBook(book.id); }}
-                                style={{ position: 'absolute', top: '10px', right: '10px', background: 'none', border: 'none', cursor: 'pointer', color: '#ff7675', zIndex: 10 }}
-                            >
-                                <Trash2 size={18} />
-                            </button>
-
                             {/* Card Cover Image */}
                             <div style={{ width: '80px', flexShrink: 0 }}>
                                 <div style={{
@@ -447,7 +501,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
                             </div>
 
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <h4 style={{ color: 'var(--primary)', marginBottom: '5px', fontSize: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: '20px' }}>
+                                <h4 style={{ color: 'var(--primary)', marginBottom: '5px', fontSize: '1.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: '10px' }}>
                                     {book.title}
                                 </h4>
                                 <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>
@@ -473,6 +527,134 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout }) => 
             </div>
 
             <KnowledgeGraph books={books} />
+
+            {/* Detail Modal */}
+            {isDetailOpen && selectedBook && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    backdropFilter: 'blur(5px)'
+                }} onClick={() => setIsDetailOpen(false)}>
+                    <div
+                        className="glass-card"
+                        style={{ width: '90%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', position: 'relative', animation: 'fadeIn 0.3s' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header Actions */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>
+                            <button onClick={handleEditFromDetail} className="btn-icon" title="수정" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#333' }}>
+                                <Pencil size={20} />
+                            </button>
+                            <button onClick={handleDeleteRequest} className="btn-icon" title="삭제" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff7675' }}>
+                                <Trash2 size={20} />
+                            </button>
+                            <button onClick={() => setIsDetailOpen(false)} className="btn-icon" title="닫기" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                            <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                {/* Big Cover */}
+                                <div style={{ flex: '0 0 250px', maxWidth: '300px', margin: '0 auto' }}>
+                                    <div style={{
+                                        width: '100%', aspectRatio: '1/1.5', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 10px 20px rgba(0,0,0,0.15)',
+                                        background: '#f1f1f1', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}>
+                                        {selectedBook.cover_url ? (
+                                            <img src={selectedBook.cover_url} alt={selectedBook.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <BookOpen size={60} color="#ccc" />
+                                        )}
+                                    </div>
+                                    {selectedBook.link && (
+                                        <a href={selectedBook.link} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', marginTop: '15px', color: 'var(--primary)', textDecoration: 'none', padding: '10px', background: '#f5f5f5', borderRadius: '8px', fontSize: '0.9rem' }}>
+                                            <ExternalLink size={16} /> 원문 보기
+                                        </a>
+                                    )}
+                                </div>
+
+                                {/* Content */}
+                                <div style={{ flex: 1, minWidth: '300px' }}>
+                                    <div style={{ marginBottom: '5px', color: '#666', fontSize: '0.9rem' }}>
+                                        {selectedBook.read_date} 읽음
+                                    </div>
+                                    <h2 style={{ fontSize: '2rem', marginBottom: '10px', color: '#333', lineHeight: 1.2 }}>{selectedBook.title}</h2>
+                                    <div style={{ fontSize: '1.1rem', color: '#555', marginBottom: '15px' }}>
+                                        {selectedBook.author} {selectedBook.publisher && `| ${selectedBook.publisher}`}
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '25px' }}>
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} size={24} fill={i < selectedBook.rating ? "gold" : "none"} stroke="gold" />
+                                        ))}
+                                        <span style={{ marginLeft: '10px', fontSize: '1.2rem', fontWeight: 'bold', color: '#333' }}>{selectedBook.rating}.0</span>
+                                    </div>
+
+                                    <div style={{ background: '#f9f9f9', padding: '25px', borderRadius: '15px', marginBottom: '20px', lineHeight: 1.6, fontSize: '1.05rem', color: '#444' }}>
+                                        <h4 style={{ marginTop: 0, marginBottom: '10px', color: '#333' }}>📝 독서 감상문</h4>
+                                        <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
+                                            {selectedBook.review_content}
+                                        </p>
+                                    </div>
+
+                                    {selectedBook.recommend_to && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#e3f2fd', padding: '15px', borderRadius: '12px', color: '#1565c0' }}>
+                                            <UserPlus size={20} />
+                                            <span style={{ fontWeight: 'bold' }}>{selectedBook.recommend_to}</span> 님에게 이 책을 추천해요!
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* PIN Verification Modal */}
+            {isPinModalOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    background: 'rgba(0,0,0,0.5)', zIndex: 1100, display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    backdropFilter: 'blur(5px)'
+                }} onClick={() => setIsPinModalOpen(false)}>
+                    <div
+                        className="glass-card"
+                        style={{ width: '90%', maxWidth: '350px', padding: '30px', textAlign: 'center', animation: 'scaleIn 0.2s' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div style={{ width: '50px', height: '50px', background: '#ffebee', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px' }}>
+                            <Lock color="#ef5350" size={24} />
+                        </div>
+                        <h3 style={{ margin: '0 0 10px 0' }}>비밀번호 확인</h3>
+                        <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>
+                            삭제하려면 4자리 비밀번호를 입력하세요.
+                        </p>
+
+                        <input
+                            type="tel"
+                            className="input-field"
+                            maxLength={4}
+                            pattern="[0-9]*"
+                            inputMode="numeric"
+                            placeholder="PIN 4자리"
+                            style={{ textAlign: 'center', letterSpacing: '10px', fontSize: '1.5rem', marginBottom: '10px', WebkitTextSecurity: 'disc' } as any}
+                            value={pinInput}
+                            onChange={e => setPinInput(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') confirmDelete(); }}
+                            autoFocus
+                        />
+
+                        {pinError && <p style={{ color: 'red', fontSize: '0.8rem', marginBottom: '15px' }}>{pinError}</p>}
+
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button className="btn" style={{ flex: 1 }} onClick={() => setIsPinModalOpen(false)}>취소</button>
+                            <button className="btn" style={{ flex: 1, background: '#ff7675', color: 'white', border: 'none' }} onClick={confirmDelete}>삭제</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

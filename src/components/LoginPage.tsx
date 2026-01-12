@@ -15,23 +15,29 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
     const [isSettingPin, setIsSettingPin] = useState(false);
     const [error, setError] = useState('');
 
+    const [loading, setLoading] = useState(false);
+
     useEffect(() => {
         fetchUsers();
     }, []);
 
     const fetchUsers = async () => {
-        const { data } = await supabase.from('users').select('*');
+        // 보안을 위해 RPC 호출로 변경 (PIN 노출 방지)
+        const { data, error } = await supabase.rpc('get_users_safe');
+        if (error) console.error('Error fetching users:', error);
         if (data) setUsers(data);
     };
 
     const handleUserSelect = (user: any) => {
+        if (loading) return; // 로딩 중 선택 방지
         setSelectedUser(user);
-        setIsSettingPin(!user.pin);
+        setIsSettingPin(!user.has_pin);
         setPin(['', '', '', '']);
         setError('');
     };
 
     const handlePinChange = (index: number, value: string) => {
+        if (loading) return;
         if (!/^\d*$/.test(value)) return;
         const newPin = [...pin];
         newPin[index] = value.slice(-1);
@@ -50,24 +56,40 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
             return;
         }
 
-        if (isSettingPin) {
-            const { error: updateError } = await supabase
-                .from('users')
-                .update({ pin: fullPin })
-                .eq('id', selectedUser.id);
+        setLoading(true);
+        setError('');
 
-            if (updateError) {
-                setError('비밀번호 저장 중 오류가 발생했습니다.');
+        try {
+            if (isSettingPin) {
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ pin: fullPin })
+                    .eq('id', selectedUser.id);
+
+                if (updateError) {
+                    setError('비밀번호 저장 중 오류가 발생했습니다.');
+                } else {
+                    onLogin(selectedUser.name);
+                }
             } else {
-                onLogin(selectedUser.name);
+                // 서버 측에서 안전하게 PIN 검증
+                const { data: isValid, error: verifyError } = await supabase
+                    .rpc('verify_pin', { user_id: selectedUser.id, input_pin: fullPin });
+
+                if (verifyError) {
+                    console.error('PIN verification error:', verifyError);
+                    setError('로그인 중 오류가 발생했습니다.');
+                } else if (isValid) {
+                    onLogin(selectedUser.name);
+                } else {
+                    setError('비밀번호가 일치하지 않습니다.');
+                    setPin(['', '', '', '']);
+                }
             }
-        } else {
-            if (selectedUser.pin === fullPin) {
-                onLogin(selectedUser.name);
-            } else {
-                setError('비밀번호가 일치하지 않습니다.');
-                setPin(['', '', '', '']);
-            }
+        } catch (e) {
+            setError('예상치 못한 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -100,7 +122,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
 
             <div className="glass-card" style={{ maxWidth: '800px', margin: '0 auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
-                    <button className="btn btn-primary" onClick={onShowChallenge}>
+                    <button className="btn btn-primary" onClick={onShowChallenge} disabled={loading}>
                         <Trophy size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         독서챌린지 보러가기
                     </button>
@@ -129,7 +151,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 padding: '30px 20px',
-                                cursor: 'pointer'
+                                cursor: loading ? 'wait' : 'pointer',
+                                opacity: loading && selectedUser?.id !== user.id ? 0.5 : 1
                             }}
                         >
                             <div className="avatar-circle" style={{
@@ -168,17 +191,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
                                 <input
                                     key={i}
                                     id={`pin-${i}`}
-                                    type="password"
+                                    type="tel"
                                     inputMode="numeric"
                                     pattern="[0-9]*"
                                     className="pin-input"
                                     maxLength={1}
                                     value={digit}
+                                    style={{ WebkitTextSecurity: 'disc' } as any}
                                     onChange={(e) => handlePinChange(i, e.target.value)}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleLoginSubmit();
                                     }}
                                     autoFocus={i === 0}
+                                    disabled={loading}
                                 />
                             ))}
                         </div>
@@ -186,8 +211,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
                         {error && <p style={{ color: 'red', fontSize: '0.9rem', marginBottom: '10px' }}>{error}</p>}
 
                         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
-                            <button className="btn" onClick={() => setSelectedUser(null)}>취소</button>
-                            <button className="btn btn-primary" onClick={handleLoginSubmit}>확인</button>
+                            <button className="btn" onClick={() => setSelectedUser(null)} disabled={loading}>취소</button>
+                            <button className="btn btn-primary" onClick={handleLoginSubmit} disabled={loading}>
+                                {loading ? '확인 중...' : '확인'}
+                            </button>
                         </div>
                     </div>
                 </div>
