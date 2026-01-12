@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Glasses, Sun, Rocket, Sprout, Trophy } from 'lucide-react';
+import { Glasses, Sun, Rocket, Sprout, Trophy, UserCog, Lock } from 'lucide-react';
 
 interface LoginPageProps {
     onLogin: (userName: string) => void;
     onShowChallenge: () => void;
+    onShowAdmin: () => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
+const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge, onShowAdmin }) => {
     // ... (state remains same)
     const [users, setUsers] = useState<any[]>([]);
     const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -16,6 +17,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
     const [error, setError] = useState('');
 
     const [loading, setLoading] = useState(false);
+
+    // Admin PIN State
+    const [isAdminPinOpen, setIsAdminPinOpen] = useState(false);
+    const [adminPin, setAdminPin] = useState('');
+    const [adminError, setAdminError] = useState('');
 
     useEffect(() => {
         fetchUsers();
@@ -93,6 +99,57 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
         }
     };
 
+    // Admin PIN Handler
+    const handleAdminSubmit = async () => {
+        setLoading(true);
+        // 1. Fetch Admin PIN from DB
+        const { data: settings, error: fetchError } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'admin_pin')
+            .single();
+
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "Row not found"
+            setAdminError('설정 확인 중 오류가 발생했습니다.');
+            setLoading(false);
+            return;
+        }
+
+        const dbPin = settings?.value;
+
+        if (!dbPin) {
+            // Case 1: First time setup -> Save new PIN
+            if (adminPin.length !== 4) {
+                setAdminError('4자리 비밀번호를 설정해주세요.');
+                setLoading(false);
+                return;
+            }
+
+            const { error: insertError } = await supabase
+                .from('app_settings')
+                .insert([{ key: 'admin_pin', value: adminPin }]);
+
+            if (insertError) {
+                setAdminError('비밀번호 설정 중 오류가 발생했습니다.');
+            } else {
+                alert('관리자 비밀번호가 설정되었습니다: ' + adminPin);
+                onShowAdmin();
+                setIsAdminPinOpen(false);
+                setAdminPin('');
+            }
+        } else {
+            // Case 2: Verify existing PIN
+            if (adminPin === dbPin) {
+                onShowAdmin();
+                setIsAdminPinOpen(false);
+                setAdminPin('');
+            } else {
+                setAdminError('비밀번호가 올바르지 않습니다.');
+            }
+        }
+        setLoading(false);
+    };
+
     const getAvatar = (name: string) => {
         const iconSize = 40;
         const iconStyle = { color: 'white' };
@@ -117,11 +174,35 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
     };
 
     return (
-        <div className="login-container">
+        <div className="login-container" style={{ position: 'relative' }}>
+
             <h1 className="title">책과 함께 하는 우리 가족</h1>
 
             <div className="glass-card" style={{ maxWidth: '800px', margin: '0 auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    {/* Admin Button */}
+                    <button
+                        onClick={() => setIsAdminPinOpen(true)}
+                        className="btn"
+                        style={{
+                            background: '#546e7a', // Blue Grey
+                            color: 'white',
+                            padding: '8px 15px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            border: 'none',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        <UserCog size={16} />
+                        관리자
+                    </button>
+
+                    {/* Challenge Button */}
                     <button className="btn btn-primary" onClick={onShowChallenge} disabled={loading}>
                         <Trophy size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
                         독서챌린지 보러가기
@@ -174,6 +255,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
                 </div>
             </div>
 
+            {/* Login User PIN Modal */}
             {selectedUser && (
                 <div className="pin-modal">
                     <div className="glass-card pin-container">
@@ -214,6 +296,58 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge }) => {
                             <button className="btn" onClick={() => setSelectedUser(null)} disabled={loading}>취소</button>
                             <button className="btn btn-primary" onClick={handleLoginSubmit} disabled={loading}>
                                 {loading ? '확인 중...' : '확인'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Admin PIN Modal */}
+            {isAdminPinOpen && (
+                <div className="pin-modal">
+                    <div className="glass-card" style={{ padding: '40px', width: '320px', textAlign: 'center' }}>
+                        <div style={{
+                            width: '50px', height: '50px', borderRadius: '50%', margin: '0 auto 20px',
+                            backgroundColor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                            <Lock size={24} color="white" />
+                        </div>
+                        <h3 style={{ marginBottom: '10px' }}>관리자 접속</h3>
+                        <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>
+                            관리자 비밀번호를 입력해주세요.<br />
+                            <span style={{ fontSize: '0.7rem', color: '#aaa' }}>(최초 접속 시 입력한 번호로 설정됩니다)</span>
+                        </p>
+
+                        <input
+                            type="password"
+                            value={adminPin}
+                            onChange={(e) => {
+                                setAdminPin(e.target.value);
+                                setAdminError('');
+                            }}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAdminSubmit()}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                fontSize: '1.2rem',
+                                borderRadius: '8px',
+                                border: '1px solid #ddd',
+                                marginBottom: '10px',
+                                textAlign: 'center',
+                                letterSpacing: '4px'
+                            }}
+                            autoFocus
+                        />
+                        {adminError && <p style={{ color: 'red', fontSize: '0.8rem', marginBottom: '15px' }}>{adminError}</p>}
+
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                            <button className="btn" onClick={() => {
+                                setIsAdminPinOpen(false);
+                                setAdminPin('');
+                                setAdminError('');
+                            }}>취소</button>
+                            <button className="btn btn-primary" onClick={handleAdminSubmit}>
+                                확인
                             </button>
                         </div>
                     </div>

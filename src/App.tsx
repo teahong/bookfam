@@ -3,8 +3,9 @@ import LoginPage from './components/LoginPage'
 import ChallengePage from './components/ChallengePage'
 import MainDashboard from './components/MainDashboard'
 import RecommendedBooksPage from './components/RecommendedBooksPage'
+import AdminPage from './components/AdminPage'
 
-type AppState = 'login' | 'challenge' | 'dashboard' | 'recommended'
+type AppState = 'login' | 'challenge' | 'dashboard' | 'recommended' | 'admin'
 
 function App() {
   const [appState, setAppState] = useState<AppState>('login')
@@ -37,6 +38,7 @@ function App() {
         <LoginPage
           onLogin={handleLogin}
           onShowChallenge={() => setAppState('challenge')}
+          onShowAdmin={() => setAppState('admin')}
         />
       )}
 
@@ -59,6 +61,10 @@ function App() {
           userName={currentUser}
           onBack={() => setAppState('dashboard')}
         />
+      )}
+
+      {appState === 'admin' && (
+        <AdminPage onBack={() => setAppState('login')} />
       )}
     </div>
   )
