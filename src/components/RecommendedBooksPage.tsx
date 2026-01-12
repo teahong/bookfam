@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, BookOpen, Star, User, Gift, ExternalLink } from 'lucide-react';
+import { ArrowLeft, BookOpen, Star, User, Gift, ExternalLink, X } from 'lucide-react';
 
 interface RecommendedBooksPageProps {
     userName: string;
@@ -10,6 +10,8 @@ interface RecommendedBooksPageProps {
 const RecommendedBooksPage: React.FC<RecommendedBooksPageProps> = ({ userName, onBack }) => {
     const [books, setBooks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedBook, setSelectedBook] = useState<any>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
 
     useEffect(() => {
         fetchRecommendedBooks();
@@ -57,6 +59,11 @@ const RecommendedBooksPage: React.FC<RecommendedBooksPageProps> = ({ userName, o
         return { bg: '#f5f5f5', text: '#616161', icon: '#9e9e9e' };
     };
 
+    const handleBookClick = (book: any) => {
+        setSelectedBook(book);
+        setIsDetailOpen(true);
+    };
+
     return (
         <div className="dashboard-container" style={{ animation: 'fadeIn 0.5s' }}>
             <header style={{ display: 'flex', alignItems: 'center', marginBottom: '40px', gap: '20px' }}>
@@ -91,7 +98,15 @@ const RecommendedBooksPage: React.FC<RecommendedBooksPageProps> = ({ userName, o
                     {books.map(book => {
                         const userColor = getUserColor(book.user_id);
                         return (
-                            <div key={book.id} className="glass-card book-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            <div
+                                key={book.id}
+                                className="glass-card book-card"
+                                style={{
+                                    padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px',
+                                    cursor: 'pointer' // 클릭 가능 표시
+                                }}
+                                onClick={() => handleBookClick(book)}
+                            >
                                 <div style={{ display: 'flex', gap: '15px' }}>
                                     {/* 표지 이미지 */}
                                     <div style={{ width: '80px', flexShrink: 0 }}>
@@ -138,22 +153,118 @@ const RecommendedBooksPage: React.FC<RecommendedBooksPageProps> = ({ userName, o
                                                 <Star size={14} fill="gold" stroke="gold" />
                                                 <span style={{ marginLeft: '4px', fontSize: '0.9rem', fontWeight: 'bold', color: '#444' }}>{book.rating}</span>
                                             </div>
+                                            {/* 리스트에는 링크 아이콘 작게 유지 (모달 유도를 위해 제거할 수도 있지만, 빠른 접근을 위해 유지) */}
                                             {book.link && (
-                                                <a href={book.link} target="_blank" rel="noopener noreferrer" title="책 정보 보러가기"
-                                                    style={{ display: 'flex', alignItems: 'center', color: '#666', textDecoration: 'none' }}>
-                                                    <ExternalLink size={14} />
-                                                </a>
+                                                <ExternalLink size={14} color="#aaa" />
                                             )}
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style={{ background: '#f9f9f9', padding: '15px', borderRadius: '8px', fontSize: '0.9rem', color: '#555', fontStyle: 'italic', flex: 1 }}>
+                                <div style={{ background: '#f9f9f9', padding: '15px', borderRadius: '8px', fontSize: '0.9rem', color: '#555', fontStyle: 'italic', flex: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                     "{book.review_content}"
                                 </div>
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {/* 상세 보기 모달 (Read-Only) */}
+            {isDetailOpen && selectedBook && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    backdropFilter: 'blur(5px)'
+                }} onClick={() => setIsDetailOpen(false)}>
+                    <div
+                        className="glass-card"
+                        style={{ width: '90%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', position: 'relative', animation: 'fadeIn 0.3s' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header Actions */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>
+                            <button onClick={() => setIsDetailOpen(false)} className="btn-icon" title="닫기" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                            <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                {/* Big Cover */}
+                                <div style={{ flex: '0 0 250px', maxWidth: '300px', margin: '0 auto' }}>
+                                    <div style={{
+                                        width: '100%', aspectRatio: '1/1.5', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 10px 20px rgba(0,0,0,0.15)',
+                                        background: '#f1f1f1', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}>
+                                        {selectedBook.cover_url ? (
+                                            <img src={selectedBook.cover_url} alt={selectedBook.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <BookOpen size={60} color="#ccc" />
+                                        )}
+                                    </div>
+
+                                    {/* 원문 보기 버튼 강조 */}
+                                    {selectedBook.link && (
+                                        <a href={selectedBook.link} target="_blank" rel="noopener noreferrer" style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                            marginTop: '15px', color: 'white', textDecoration: 'none',
+                                            padding: '12px', background: 'var(--primary)', borderRadius: '10px',
+                                            fontSize: '1rem', fontWeight: 'bold', boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                            transition: 'transform 0.2s',
+                                        }}
+                                            onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                            onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+                                        >
+                                            <ExternalLink size={18} /> 원문 보기
+                                        </a>
+                                    )}
+                                </div>
+
+                                {/* Content */}
+                                <div style={{ flex: 1, minWidth: '300px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                                        {(() => {
+                                            const uColor = getUserColor(selectedBook.user_id);
+                                            return (
+                                                <div style={{
+                                                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                    padding: '6px 12px', background: uColor.bg, borderRadius: '20px',
+                                                    color: uColor.text, fontSize: '0.9rem', fontWeight: 'bold'
+                                                }}>
+                                                    <User size={14} color={uColor.icon} />
+                                                    {selectedBook.user_id}님의 추천
+                                                </div>
+                                            );
+                                        })()}
+                                        <div style={{ color: '#aaa', fontSize: '0.9rem' }}>|</div>
+                                        <div style={{ color: '#666', fontSize: '0.9rem' }}>
+                                            {selectedBook.read_date} 읽음
+                                        </div>
+                                    </div>
+
+                                    <h2 style={{ fontSize: '2rem', marginBottom: '10px', color: '#333', lineHeight: 1.2 }}>{selectedBook.title}</h2>
+                                    <div style={{ fontSize: '1.1rem', color: '#555', marginBottom: '15px' }}>
+                                        {selectedBook.author} {selectedBook.publisher && `| ${selectedBook.publisher}`}
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '25px' }}>
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} size={24} fill={i < selectedBook.rating ? "gold" : "none"} stroke="gold" />
+                                        ))}
+                                        <span style={{ marginLeft: '10px', fontSize: '1.2rem', fontWeight: 'bold', color: '#333' }}>{selectedBook.rating}.0</span>
+                                    </div>
+
+                                    <div style={{ background: '#f9f9f9', padding: '25px', borderRadius: '15px', marginBottom: '20px', lineHeight: 1.6, fontSize: '1.05rem', color: '#444' }}>
+                                        <h4 style={{ marginTop: 0, marginBottom: '10px', color: '#333' }}>📝 추천 사유 (감상문)</h4>
+                                        <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
+                                            {selectedBook.review_content}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
