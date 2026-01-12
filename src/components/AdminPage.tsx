@@ -43,9 +43,13 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
     const totalLength = books.reduce((acc, book) => acc + (book.review_content ? book.review_content.length : 0), 0);
 
     const booksByUser = users.map(u => {
-        const userBooks = books.filter(b => b.user_id === u.name);
+        // Robust match: Check if user_id matches name or ID (trimmed)
+        const userBooks = books.filter(b =>
+            (b.user_id?.trim() === u.name?.trim()) || (b.user_id?.trim() === u.id?.trim())
+        );
         return {
             name: u.name,
+            id: u.id,
             count: userBooks.length,
             length: userBooks.reduce((acc, b) => acc + (b.review_content ? b.review_content.length : 0), 0)
         };
@@ -58,12 +62,19 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
         setIsAnalyzing(true);
         setAnalysisResult(null);
 
-        // 1. Fetch user's reviews
-        const userBooks = books.filter(b => b.user_id === selectedUser && b.review_content && b.review_content.length > 10);
+        // Fetch user object to get both name and ID for robust filtering
+        const targetUser = users.find(u => u.name === selectedUser);
+
+        // 1. Fetch user's reviews (Length > 10 as requested)
+        const userBooks = books.filter(b =>
+            ((b.user_id?.trim() === selectedUser?.trim()) || (targetUser && b.user_id?.trim() === targetUser.id?.trim())) &&
+            b.review_content && b.review_content.trim().length >= 10
+        );
+
         const reviews = userBooks.map(b => b.review_content);
 
         if (reviews.length === 0) {
-            setAnalysisResult({ error: '분석할 독서록 데이터가 충분하지 않습니다.' });
+            setAnalysisResult({ error: `${selectedUser}님의 독서록 중 10글자 이상의 유효한 데이터가 없습니다.` });
             setIsAnalyzing(false);
             return;
         }

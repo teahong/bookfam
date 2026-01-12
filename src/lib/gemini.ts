@@ -37,17 +37,20 @@ export const extractKeywords = async (text: string): Promise<string[]> => {
     }
 };
 // Reading Pattern Analysis
-export const analyzeReadingPatterns = async (userName: string, reviews: string[]): Promise<{ level: string, interest: string, recommendation: string } | null> => {
+export async function analyzeReadingPatterns(userName: string, reviews: string[]) {
     if (!reviews || reviews.length === 0) return null;
 
-    // Combine reviews for analysis (limit length to avoid token limits)
-    const combinedReviews = reviews.slice(0, 10).join("\n\n");
-
     try {
+        const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+        // Use gemini-2.0-flash-exp which is verified working in this environment
         const model = genAI.getGenerativeModel({
             model: "gemini-2.0-flash-exp",
-            generationConfig: { responseMimeType: "application/json" }
+            generationConfig: {
+                responseMimeType: "application/json",
+            }
         });
+
+        const combinedReviews = reviews.map((r, i) => `Review ${i + 1}: ${r}`).join('\n');
 
         const prompt = `
       You are an expert reading educational consultant and psychologist analyzing a user's reading history.
@@ -55,19 +58,36 @@ export const analyzeReadingPatterns = async (userName: string, reviews: string[]
       Reviews:
       ${combinedReviews}
 
-      Analyze the reviews deeply and provide a professional output in JSON format with the following keys:
-      - "level": Analyze the user's writing level, considering vocabulary richness, sentence structure complexity, and logical flow. (e.g., "어휘력이 풍부하고 논리적인 14세 수준"). Format: "${userName}님의 글쓰기 수준은 [Detailed Description]입니다."
-      - "interest": Identify the user's primary reading interests and any specific themes they focus on. Format: "현재 ${userName}님은 [Interest] 분야 도서에 관심이 많습니다."
-      - "recommendation": Recommend a type of book the user should read next to broaden their horizon, specifically mentioning WHY based on their current habits (e.g., to improve critical thinking, to explore diverse cultures). Format: "현재 ${userName}님은 [Category]와 같은 책을 추가로 읽을 필요가 있습니다. 이유: [Reason]"
+      Strictly analyze the provided reviews and provide a professional output in JSON format with the following keys:
+      - "level": [Detailed Description of writing level]
+      - "interest": [Detailed Description of primary interests]
+      - "recommendation": [Targeted book recommendation with specific reasons]
       
-      Response MUST be in Korean and use a professional, encouraging tone.
+      Requirements:
+      - Response MUST be in Korean.
+      - Tone: Professional and encouraging.
+      - If reviews are limited, provide a best-effort analysis based on the available text.
+      - Output MUST be a single JSON object with the keys "level", "interest", and "recommendation".
     `;
 
         const result = await model.generateContent(prompt);
-        const text = result.response.text();
-        return JSON.parse(text);
+        const response = await result.response;
+        const text = response.text();
+
+        try {
+            const parsed = JSON.parse(text);
+            // Ensure all keys exist and are not empty
+            return {
+                level: parsed.level || `${userName}님의 독서 습관을 분석하여 곧 결과를 알려드릴게요.`,
+                interest: parsed.interest || "아직 충분한 독서 감상문이 쌓이지 않았습니다.",
+                recommendation: parsed.recommendation || "더 많은 감상문을 적으면 정확한 추천이 시작됩니다!"
+            };
+        } catch (parseError) {
+            console.error("JSON Parse Error:", parseError, "Raw Text:", text);
+            return null;
+        }
     } catch (error) {
-        console.error("Gemini Analysis Error:", error);
+        console.error("Gemini AI Error:", error);
         return null;
     }
-};
+}
