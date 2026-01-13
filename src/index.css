@@ -135,28 +135,6 @@ body {
   text-align: center;
 }
 
-.pin-inputs {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin: 20px 0;
-}
-
-.pin-input {
-  width: 50px;
-  height: 60px;
-  font-size: 1.5rem;
-  text-align: center;
-  border-radius: 10px;
-  border: 2px solid #ddd;
-  background: white;
-}
-
-.pin-input:focus {
-  border-color: var(--primary);
-  outline: none;
-}
-
 /* New Input Styles */
 .input-field {
   width: 100%;

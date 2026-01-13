@@ -639,7 +639,18 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
                             pattern="[0-9]*"
                             inputMode="numeric"
                             placeholder="PIN 4자리"
-                            style={{ textAlign: 'center', letterSpacing: '10px', fontSize: '1.5rem', marginBottom: '10px', WebkitTextSecurity: 'disc' } as any}
+                            style={{
+                                textAlign: 'center',
+                                letterSpacing: '10px',
+                                fontSize: '1.8rem',
+                                marginBottom: '15px',
+                                WebkitTextSecurity: 'disc',
+                                height: '60px',
+                                border: '2px solid #e0e0e0',
+                                borderRadius: '12px',
+                                background: 'white',
+                                width: '100%'
+                            } as any}
                             value={pinInput}
                             onChange={e => setPinInput(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') confirmDelete(); }}

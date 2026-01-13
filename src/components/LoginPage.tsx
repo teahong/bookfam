@@ -12,7 +12,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge, onShowA
     // ... (state remains same)
     const [users, setUsers] = useState<any[]>([]);
     const [selectedUser, setSelectedUser] = useState<any>(null);
-    const [pin, setPin] = useState(['', '', '', '']);
+    const [pin, setPin] = useState('');
     const [isSettingPin, setIsSettingPin] = useState(false);
     const [error, setError] = useState('');
 
@@ -38,25 +38,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge, onShowA
         if (loading) return; // 로딩 중 선택 방지
         setSelectedUser(user);
         setIsSettingPin(!user.has_pin);
-        setPin(['', '', '', '']);
+        setPin('');
         setError('');
     };
 
-    const handlePinChange = (index: number, value: string) => {
+    const handlePinChange = (value: string) => {
         if (loading) return;
         if (!/^\d*$/.test(value)) return;
-        const newPin = [...pin];
-        newPin[index] = value.slice(-1);
-        setPin(newPin);
-
-        if (value && index < 3) {
-            const nextInput = document.getElementById(`pin-${index + 1}`);
-            nextInput?.focus();
-        }
+        setPin(value.slice(0, 4));
     };
 
     const handleLoginSubmit = async () => {
-        const fullPin = pin.join('');
+        const fullPin = pin;
         if (fullPin.length < 4) {
             setError('4자리 비밀번호를 입력해주세요.');
             return;
@@ -89,7 +82,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge, onShowA
                     onLogin(selectedUser.name);
                 } else {
                     setError('비밀번호가 일치하지 않습니다.');
-                    setPin(['', '', '', '']);
+                    setPin('');
                 }
             }
         } catch (e) {
@@ -198,7 +191,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge, onShowA
                             fontSize: '0.9rem'
                         }}
                     >
-                        <UserCog size={16} />
+                        <UserCog size={22} />
                         관리자
                     </button>
 
@@ -268,33 +261,38 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge, onShowA
                         <h3>{selectedUser.name}님</h3>
                         <p>{isSettingPin ? '첫 방문이시네요! 비밀번호 4자리를 등록해주세요.' : '비밀번호를 입력해주세요.'}</p>
 
-                        <div className="pin-inputs">
-                            {pin.map((digit, i) => (
-                                <input
-                                    key={i}
-                                    id={`pin-${i}`}
-                                    type="tel"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    className="pin-input"
-                                    maxLength={1}
-                                    value={digit}
-                                    style={{ WebkitTextSecurity: 'disc' } as any}
-                                    onChange={(e) => handlePinChange(i, e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleLoginSubmit();
-                                    }}
-                                    autoFocus={i === 0}
-                                    disabled={loading}
-                                />
-                            ))}
-                        </div>
+                        <input
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            className="input-field"
+                            maxLength={4}
+                            placeholder="PIN 4자리"
+                            value={pin}
+                            style={{
+                                textAlign: 'center',
+                                letterSpacing: '10px',
+                                fontSize: '1.8rem',
+                                marginBottom: '10px',
+                                WebkitTextSecurity: 'disc',
+                                height: '60px',
+                                border: '2px solid #e0e0e0',
+                                borderRadius: '12px',
+                                background: 'white'
+                            } as any}
+                            onChange={(e) => handlePinChange(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleLoginSubmit();
+                            }}
+                            autoFocus
+                            disabled={loading}
+                        />
 
                         {error && <p style={{ color: 'red', fontSize: '0.9rem', marginBottom: '10px' }}>{error}</p>}
 
                         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
-                            <button className="btn" onClick={() => setSelectedUser(null)} disabled={loading}>취소</button>
-                            <button className="btn btn-primary" onClick={handleLoginSubmit} disabled={loading}>
+                            <button className="btn" style={{ flex: 1, padding: '12px' }} onClick={() => setSelectedUser(null)} disabled={loading}>취소</button>
+                            <button className="btn btn-primary" style={{ flex: 1, padding: '12px' }} onClick={handleLoginSubmit} disabled={loading}>
                                 {loading ? '확인 중...' : '확인'}
                             </button>
                         </div>
@@ -319,23 +317,32 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onShowChallenge, onShowA
                         </p>
 
                         <input
-                            type="password"
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            className="input-field"
+                            maxLength={4}
+                            placeholder="PIN 4자리"
                             value={adminPin}
                             onChange={(e) => {
-                                setAdminPin(e.target.value);
-                                setAdminError('');
+                                if (/^\d*$/.test(e.target.value)) {
+                                    setAdminPin(e.target.value.slice(0, 4));
+                                    setAdminError('');
+                                }
                             }}
                             onKeyDown={(e) => e.key === 'Enter' && handleAdminSubmit()}
                             style={{
                                 width: '100%',
-                                padding: '12px',
-                                fontSize: '1.2rem',
-                                borderRadius: '8px',
-                                border: '1px solid #ddd',
-                                marginBottom: '10px',
                                 textAlign: 'center',
-                                letterSpacing: '4px'
-                            }}
+                                letterSpacing: '10px',
+                                fontSize: '1.8rem',
+                                marginBottom: '10px',
+                                WebkitTextSecurity: 'disc',
+                                height: '60px',
+                                border: '2px solid #e0e0e0',
+                                borderRadius: '12px',
+                                background: 'white'
+                            } as any}
                             autoFocus
                         />
                         {adminError && <p style={{ color: 'red', fontSize: '0.8rem', marginBottom: '15px' }}>{adminError}</p>}
