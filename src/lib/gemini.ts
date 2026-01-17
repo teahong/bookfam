@@ -64,9 +64,9 @@ export async function analyzeReadingPatterns(userName: string, reviews: string[]
       ${combinedReviews}
 
       Strictly analyze the provided reviews and provide a professional output in JSON format with the following keys:
-      - "level": [Detailed Description of writing level. Assess vocabulary, sentence structure, and depth of thought compared to the typical ${age ? `${age}-year-old` : 'reading level'}.]
-      - "interest": [Detailed Description of primary interests, themes, and emotional resonance found in the reading history.]
-      - "recommendation": [Targeted book recommendation (specific title and author) that is appropriate for a ${age ? `${age}-year-old` : 'reader'} and matches their interests, with specific pedagogical/psychological reasons.]
+      - "level": string [Detailed Description of writing level. Assess vocabulary, sentence structure, and depth of thought compared to the typical ${age ? `${age}-year-old` : 'reading level'}.]
+      - "interest": string [Detailed Description of primary interests, themes, and emotional resonance found in the reading history.]
+      - "recommendation": object { "title": string, "author": string, "reason": string } [Targeted book recommendation (specific title and author) that is appropriate for a ${age ? `${age}-year-old` : 'reader'} and matches their interests, with specific pedagogical/psychological reasons.]
       
       Requirements:
       - Response MUST be in Korean.
@@ -86,7 +86,11 @@ export async function analyzeReadingPatterns(userName: string, reviews: string[]
             return {
                 level: parsed.level || `${userName}님의 독서 습관을 분석하여 곧 결과를 알려드릴게요.`,
                 interest: parsed.interest || "아직 충분한 독서 감상문이 쌓이지 않았습니다.",
-                recommendation: parsed.recommendation || "더 많은 감상문을 적으면 정확한 추천이 시작됩니다!"
+                recommendation: parsed.recommendation || {
+                    title: "추천 도서 준비 중",
+                    author: "-",
+                    reason: "더 많은 감상문을 적으면 정확한 추천이 시작됩니다!"
+                }
             };
         } catch (parseError) {
             console.error("JSON Parse Error:", parseError, "Raw Text:", text);

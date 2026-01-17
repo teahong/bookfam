@@ -268,21 +268,39 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#1565c0' }}>
                                                     <Activity size={20} /> 글쓰기 수준
                                                 </h4>
-                                                <p style={{ fontSize: '1.1rem', margin: 0 }}>{analysisResult.level}</p>
+                                                <p style={{ fontSize: '1.1rem', margin: 0 }}>
+                                                    {typeof analysisResult.level === 'object' ? JSON.stringify(analysisResult.level) : analysisResult.level}
+                                                </p>
                                             </div>
 
                                             <div style={{ background: '#f3e5f5', padding: '20px', borderRadius: '15px', borderLeft: '5px solid #9c27b0' }}>
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#7b1fa2' }}>
                                                     <TrendingUp size={20} /> 관심 분야
                                                 </h4>
-                                                <p style={{ fontSize: '1.1rem', margin: 0 }}>{analysisResult.interest}</p>
+                                                <p style={{ fontSize: '1.1rem', margin: 0 }}>
+                                                    {typeof analysisResult.interest === 'object' ? JSON.stringify(analysisResult.interest) : analysisResult.interest}
+                                                </p>
                                             </div>
 
                                             <div style={{ background: '#e8f5e9', padding: '20px', borderRadius: '15px', borderLeft: '5px solid #4caf50' }}>
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#2e7d32' }}>
                                                     <BookOpen size={20} /> 맞춤 도서 추천
                                                 </h4>
-                                                <p style={{ fontSize: '1.1rem', margin: 0 }}>{analysisResult.recommendation}</p>
+                                                {typeof analysisResult.recommendation === 'object' && analysisResult.recommendation !== null ? (
+                                                    <div style={{ fontSize: '1.1rem', margin: 0 }}>
+                                                        <div style={{ fontWeight: 'bold', color: '#2e7d32' }}>
+                                                            📚 {analysisResult.recommendation.title || '추천 도서'}
+                                                            <span style={{ fontWeight: 'normal', fontSize: '0.9rem', color: '#666', marginLeft: '8px' }}>
+                                                                {analysisResult.recommendation.author && `- ${analysisResult.recommendation.author}`}
+                                                            </span>
+                                                        </div>
+                                                        <p style={{ fontSize: '1rem', marginTop: '8px', color: '#444', lineHeight: '1.5' }}>
+                                                            {analysisResult.recommendation.reason || '감상문을 더 작성하면 상세한 추천 이유를 알려드려요.'}
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <p style={{ fontSize: '1.1rem', margin: 0 }}>{analysisResult.recommendation}</p>
+                                                )}
                                             </div>
                                         </>
                                     )}
