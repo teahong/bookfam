@@ -66,14 +66,14 @@ export async function analyzeReadingPatterns(userName: string, reviews: string[]
       Strictly analyze the provided reviews and provide a professional output in JSON format with the following keys:
       - "level": string [Detailed Description of writing level. Assess vocabulary, sentence structure, and depth of thought compared to the typical ${age ? `${age}-year-old` : 'reading level'}.]
       - "interest": string [Detailed Description of primary interests, themes, and emotional resonance found in the reading history.]
-      - "recommendations": array of objects [{ "title": string, "author": string, "reason": string }] [Exactly 5 targeted book recommendations that are appropriate for a ${age ? `${age}-year-old` : 'reader'} and match their interests, with specific pedagogical/psychological reasons for each.]
+      - "recommendation": object { "title": string, "author": string, "reason": string } [Targeted book recommendation (specific title and author) that is appropriate for a ${age ? `${age}-year-old` : 'reader'} and matches their interests, with specific pedagogical/psychological reasons.]
       
       Requirements:
       - Response MUST be in Korean.
       - Tone: Professional, warm, and encouraging.
       - Use age-appropriate benchmarks if age is provided.
       - If reviews are limited, provide a best-effort analysis based on the available text.
-      - Output MUST be a single JSON object with the keys "level", "interest", and "recommendations".
+      - Output MUST be a single JSON object with the keys "level", "interest", and "recommendation".
     `;
 
         const result = await model.generateContent(prompt);
@@ -86,9 +86,11 @@ export async function analyzeReadingPatterns(userName: string, reviews: string[]
             return {
                 level: parsed.level || `${userName}님의 독서 습관을 분석하여 곧 결과를 알려드릴게요.`,
                 interest: parsed.interest || "아직 충분한 독서 감상문이 쌓이지 않았습니다.",
-                recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [
-                    { title: "추천 도서 준비 중", author: "-", reason: "더 많은 감상문을 적으면 정확한 추천이 시작됩니다!" }
-                ]
+                recommendation: parsed.recommendation || {
+                    title: "추천 도서 준비 중",
+                    author: "-",
+                    reason: "더 많은 감상문을 적으면 정확한 추천이 시작됩니다!"
+                }
             };
         } catch (parseError) {
             console.error("JSON Parse Error:", parseError, "Raw Text:", text);
