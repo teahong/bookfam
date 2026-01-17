@@ -77,7 +77,7 @@ export async function analyzeReadingPatterns(userName: string, reviews: string[]
     `;
 
         const result = await model.generateContent(prompt);
-        const response = await result.response;//test
+        const response = await result.response;//test1
         const text = response.text();
 
         try {
