@@ -22,6 +22,34 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
         fetchData();
     }, []);
 
+    // Fetch AI Analysis whenever selectedUser changes
+    useEffect(() => {
+        if (selectedUser && users.length > 0) {
+            fetchAIAnalysis();
+        }
+    }, [selectedUser, users]);
+
+    const fetchAIAnalysis = async () => {
+        const targetUser = users.find(u => u.name === selectedUser);
+        if (!targetUser) return;
+
+        const { data, error } = await supabase
+            .from('ai_analysis')
+            .select('*')
+            .eq('user_id', targetUser.id)
+            .single();
+
+        if (data && !error) {
+            setAnalysisResult({
+                level: data.level,
+                interest: data.interest,
+                recommendations: data.recommendations
+            });
+        } else {
+            setAnalysisResult(null);
+        }
+    };
+
     const fetchData = async () => {
         setLoading(true);
         // Fetch all books
@@ -74,10 +102,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
     const handleAnalyze = async () => {
         if (!selectedUser) return;
         setIsAnalyzing(true);
-        setAnalysisResult(null);
+        // Do not clear analysisResult immediately, show loading over it or show new state
 
         // Fetch user object to get name, ID, and AGE
         const targetUser = users.find(u => u.name === selectedUser);
+        if (!targetUser) return;
 
         // 1. Fetch user's reviews (Length > 10 as requested)
         const userBooks = books.filter(b =>
@@ -95,8 +124,21 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
 
         // 2. Call Gemini
         const result = await analyzeReadingPatterns(selectedUser, reviews, targetUser?.age);
-        if (result) {
+        if (result && !(result as any).error) {
             setAnalysisResult(result);
+
+            // 3. Save to Supabase (Upsert)
+            const { error: saveError } = await supabase
+                .from('ai_analysis')
+                .upsert({
+                    user_id: targetUser.id,
+                    level: result.level,
+                    interest: result.interest,
+                    recommendations: result.recommendations,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
+
+            if (saveError) console.error("Analysis Save Error:", saveError);
         } else {
             setAnalysisResult({ error: 'AI 분석 중 오류가 발생했습니다.' });
         }
@@ -258,9 +300,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
 
                             {analysisResult && (
                                 <div style={{ display: 'grid', gap: '20px', animation: 'fadeIn 0.5s' }}>
-                                    {analysisResult.error ? (
+                                    {(analysisResult as any).error ? (
                                         <div style={{ padding: '20px', background: '#ffebee', color: '#c62828', borderRadius: '10px' }}>
-                                            {analysisResult.error}
+                                            {(analysisResult as any).error}
                                         </div>
                                     ) : (
                                         <>
@@ -268,7 +310,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#1565c0' }}>
                                                     <Activity size={20} /> 글쓰기 수준
                                                 </h4>
-                                                <p style={{ fontSize: '1.1rem', margin: 0 }}>
+                                                <p style={{ fontSize: '1.1rem', margin: 0, lineHeight: '1.6' }}>
                                                     {typeof analysisResult.level === 'object' ? JSON.stringify(analysisResult.level) : analysisResult.level}
                                                 </p>
                                             </div>
@@ -277,30 +319,33 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#7b1fa2' }}>
                                                     <TrendingUp size={20} /> 관심 분야
                                                 </h4>
-                                                <p style={{ fontSize: '1.1rem', margin: 0 }}>
+                                                <p style={{ fontSize: '1.1rem', margin: 0, lineHeight: '1.6' }}>
                                                     {typeof analysisResult.interest === 'object' ? JSON.stringify(analysisResult.interest) : analysisResult.interest}
                                                 </p>
                                             </div>
 
                                             <div style={{ background: '#e8f5e9', padding: '20px', borderRadius: '15px', borderLeft: '5px solid #4caf50' }}>
-                                                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#2e7d32' }}>
-                                                    <BookOpen size={20} /> 맞춤 도서 추천
+                                                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', color: '#2e7d32' }}>
+                                                    <BookOpen size={20} /> 맞춤 도서 추천 (5권)
                                                 </h4>
-                                                {typeof analysisResult.recommendation === 'object' && analysisResult.recommendation !== null ? (
-                                                    <div style={{ fontSize: '1.1rem', margin: 0 }}>
-                                                        <div style={{ fontWeight: 'bold', color: '#2e7d32' }}>
-                                                            📚 {analysisResult.recommendation.title || '추천 도서'}
-                                                            <span style={{ fontWeight: 'normal', fontSize: '0.9rem', color: '#666', marginLeft: '8px' }}>
-                                                                {analysisResult.recommendation.author && `- ${analysisResult.recommendation.author}`}
-                                                            </span>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                                                    {Array.isArray(analysisResult.recommendations) ? analysisResult.recommendations.map((book: any, idx: number) => (
+                                                        <div key={idx} style={{ background: 'white', padding: '20px', borderRadius: '15px', border: '1px solid #e8ede8', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                            <div style={{ fontWeight: 'bold', color: '#2e7d32', fontSize: '1.1rem' }}>
+                                                                📚 {book.title}
+                                                            </div>
+                                                            <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                                                                저자: {book.author}
+                                                            </div>
+                                                            <div style={{ height: '1px', background: '#f0f0f0', margin: '5px 0' }}></div>
+                                                            <p style={{ fontSize: '0.95rem', color: '#444', lineHeight: '1.6', margin: 0 }}>
+                                                                {book.reason}
+                                                            </p>
                                                         </div>
-                                                        <p style={{ fontSize: '1rem', marginTop: '8px', color: '#444', lineHeight: '1.5' }}>
-                                                            {analysisResult.recommendation.reason || '감상문을 더 작성하면 상세한 추천 이유를 알려드려요.'}
-                                                        </p>
-                                                    </div>
-                                                ) : (
-                                                    <p style={{ fontSize: '1.1rem', margin: 0 }}>{analysisResult.recommendation}</p>
-                                                )}
+                                                    )) : (
+                                                        <p style={{ fontSize: '1.1rem', margin: 0 }}>{analysisResult.recommendations || "추천 정보를 불러올 수 없습니다."}</p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </>
                                     )}
