@@ -28,8 +28,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
         const { data: booksData } = await supabase.from('books').select('*');
         if (booksData) setBooks(booksData);
 
-        // Fetch users
-        const { data: usersData } = await supabase.from('users').select('id, name');
+        // Fetch users including age
+        const { data: usersData } = await supabase.from('users').select('id, name, age');
         if (usersData) {
             setUsers(usersData);
             if (usersData.length > 0) setSelectedUser(usersData[0].name);
@@ -57,12 +57,26 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
 
     const readingKing = booksByUser.length > 0 ? booksByUser[0] : null;
 
+    const updateAge = async (userId: string, age: string) => {
+        const val = parseInt(age);
+        if (isNaN(val)) return;
+
+        const { error } = await supabase
+            .from('users')
+            .update({ age: val })
+            .eq('id', userId);
+
+        if (!error) {
+            setUsers(users.map(u => u.id === userId ? { ...u, age: val } : u));
+        }
+    };
+
     const handleAnalyze = async () => {
         if (!selectedUser) return;
         setIsAnalyzing(true);
         setAnalysisResult(null);
 
-        // Fetch user object to get both name and ID for robust filtering
+        // Fetch user object to get name, ID, and AGE
         const targetUser = users.find(u => u.name === selectedUser);
 
         // 1. Fetch user's reviews (Length > 10 as requested)
@@ -80,7 +94,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
         }
 
         // 2. Call Gemini
-        const result = await analyzeReadingPatterns(selectedUser, reviews);
+        const result = await analyzeReadingPatterns(selectedUser, reviews, targetUser?.age);
         if (result) {
             setAnalysisResult(result);
         } else {
@@ -203,20 +217,38 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                         </h2>
 
                         <div className="glass-card" style={{ padding: '30px' }}>
-                            <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '30px' }}>
                                 {users.map(u => (
-                                    <button
-                                        key={u.id}
-                                        onClick={() => setSelectedUser(u.name)}
-                                        className="btn"
-                                        style={{
-                                            background: selectedUser === u.name ? 'var(--primary)' : 'white',
-                                            color: selectedUser === u.name ? 'white' : '#333',
-                                            border: selectedUser === u.name ? 'none' : '1px solid #ddd'
-                                        }}
-                                    >
-                                        {u.name}
-                                    </button>
+                                    <div key={u.id} style={{
+                                        padding: '15px',
+                                        borderRadius: '15px',
+                                        background: selectedUser === u.name ? 'rgba(109, 93, 252, 0.1)' : 'white',
+                                        border: selectedUser === u.name ? '2px solid var(--primary)' : '1px solid #eee',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '10px',
+                                        cursor: 'pointer'
+                                    }} onClick={() => setSelectedUser(u.name)}>
+                                        <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{u.name}</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            <span style={{ fontSize: '0.8rem', color: '#888' }}>연령:</span>
+                                            <input
+                                                type="number"
+                                                defaultValue={u.age || ''}
+                                                onBlur={(e) => updateAge(u.id, e.target.value)}
+                                                placeholder="입력"
+                                                style={{
+                                                    width: '50px',
+                                                    padding: '2px 5px',
+                                                    border: '1px solid #eee',
+                                                    borderRadius: '5px',
+                                                    fontSize: '0.9rem'
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                            <span style={{ fontSize: '0.9rem' }}>세</span>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
 

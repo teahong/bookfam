@@ -37,7 +37,7 @@ export const extractKeywords = async (text: string): Promise<string[]> => {
     }
 };
 // Reading Pattern Analysis
-export async function analyzeReadingPatterns(userName: string, reviews: string[]) {
+export async function analyzeReadingPatterns(userName: string, reviews: string[], age?: number) {
     if (!reviews || reviews.length === 0) return null;
 
     try {
@@ -53,19 +53,25 @@ export async function analyzeReadingPatterns(userName: string, reviews: string[]
         const combinedReviews = reviews.map((r, i) => `Review ${i + 1}: ${r}`).join('\n');
 
         const prompt = `
-      You are an expert reading educational consultant and psychologist analyzing a user's reading history.
-      User Name: ${userName}
+      You are an expert reading educational consultant and psychologist.
+      Analyze the user's reading history based on their age and review content.
+      
+      User Information:
+      - Name: ${userName}
+      - Age: ${age ? `${age} years old` : 'Unknown'}
+      
       Reviews:
       ${combinedReviews}
 
       Strictly analyze the provided reviews and provide a professional output in JSON format with the following keys:
-      - "level": [Detailed Description of writing level]
-      - "interest": [Detailed Description of primary interests]
-      - "recommendation": [Targeted book recommendation with specific reasons]
+      - "level": [Detailed Description of writing level. Assess vocabulary, sentence structure, and depth of thought compared to the typical ${age ? `${age}-year-old` : 'reading level'}.]
+      - "interest": [Detailed Description of primary interests, themes, and emotional resonance found in the reading history.]
+      - "recommendation": [Targeted book recommendation (specific title and author) that is appropriate for a ${age ? `${age}-year-old` : 'reader'} and matches their interests, with specific pedagogical/psychological reasons.]
       
       Requirements:
       - Response MUST be in Korean.
-      - Tone: Professional and encouraging.
+      - Tone: Professional, warm, and encouraging.
+      - Use age-appropriate benchmarks if age is provided.
       - If reviews are limited, provide a best-effort analysis based on the available text.
       - Output MUST be a single JSON object with the keys "level", "interest", and "recommendation".
     `;
