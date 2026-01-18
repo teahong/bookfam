@@ -148,16 +148,22 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
     return (
         <div className="dashboard-container" style={{ animation: 'fadeIn 0.5s' }}>
             {/* Header */}
-            <header style={{ display: 'flex', alignItems: 'center', marginBottom: '40px', gap: '20px' }}>
+            <header style={{
+                display: 'flex',
+                flexDirection: window.innerWidth < 600 ? 'column' : 'row',
+                alignItems: window.innerWidth < 600 ? 'flex-start' : 'center',
+                marginBottom: '40px',
+                gap: '20px'
+            }}>
                 <button onClick={onBack} className="btn-icon" style={{ background: 'white', padding: '10px', borderRadius: '50%', border: '1px solid #eee', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <ArrowLeft size={24} color="#333" />
                 </button>
                 <div>
-                    <h1 style={{ fontSize: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Lock color="var(--primary)" size={32} />
+                    <h1 style={{ fontSize: window.innerWidth < 600 ? '1.5rem' : '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Lock color="var(--primary)" size={28} />
                         관리자 페이지
                     </h1>
-                    <p>우리 가족의 독서 현황을 한눈에 확인하세요.</p>
+                    <p style={{ fontSize: '0.9rem' }}>우리 가족의 독서 현황을 한눈에 확인하세요.</p>
                 </div>
             </header>
 
@@ -197,43 +203,39 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                            <div className="glass-card" style={{ textAlign: 'center', padding: '30px' }}>
-                                <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '20px' }}>
+                            <div className="glass-card" style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '10px' }}>
                                     {statsType === 'count' ? '총 누적 독서량' : '총 누적 글자 수'}
                                 </div>
-                                <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
                                     {statsType === 'count' ? `${totalBooks}권` : `${totalLength.toLocaleString()}자`}
                                 </div>
                             </div>
-                            <div className="glass-card" style={{ textAlign: 'center', padding: '30px' }}>
-                                <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>이달의 독서왕</div>
-                                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#e67e22' }}>
+                            <div className="glass-card" style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '10px' }}>이달의 독서왕</div>
+                                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#e67e22' }}>
                                     {readingKing ? readingKing.name : '-'}
-                                    <span style={{ fontSize: '1rem', color: '#888', marginLeft: '5px' }}>
-                                        ({statsType === 'count' ? `${readingKing?.count}권` : `${readingKing?.length.toLocaleString()}자`})
-                                    </span>
+                                    <div style={{ fontSize: '0.9rem', color: '#888', marginTop: '5px' }}>
+                                        {statsType === 'count' ? `${readingKing?.count}권` : `${readingKing?.length.toLocaleString()}자`}
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Chart / Bar Graph */}
-                        <div className="glass-card" style={{ marginTop: '20px', padding: '30px' }}>
-                            <h3 style={{ marginBottom: '20px' }}>가족별 독서 현황 ({statsType === 'count' ? '권수' : '글자 수'})</h3>
+                        <div className="glass-card" style={{ marginTop: '20px' }}>
+                            <h3 style={{ marginBottom: '20px', fontSize: '1.1rem' }}>가족별 독서 현황 ({statsType === 'count' ? '권수' : '글자 수'})</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                 {booksByUser.map(user => {
-
                                     const val = statsType === 'count' ? user.count : user.length;
-
-
-                                    // Better viz: relative to max individual value
                                     const maxIndividual = Math.max(...booksByUser.map(u => statsType === 'count' ? u.count : u.length));
                                     const barPercent = maxIndividual > 0 ? (val / maxIndividual) * 100 : 0;
 
                                     return (
-                                        <div key={user.name} style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                            <div style={{ width: '60px', fontWeight: 'bold' }}>{user.name}</div>
-                                            <div style={{ flex: 1, background: '#f0f0f0', borderRadius: '10px', height: '20px', overflow: 'hidden' }}>
+                                        <div key={user.name} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <div style={{ width: '50px', fontWeight: 'bold', fontSize: '0.9rem' }}>{user.name}</div>
+                                            <div style={{ flex: 1, background: '#f0f0f0', borderRadius: '10px', height: '16px', overflow: 'hidden' }}>
                                                 <div style={{
                                                     width: `${barPercent}%`,
                                                     background: 'var(--primary)',
@@ -242,7 +244,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                                                     minWidth: val > 0 ? '5px' : '0'
                                                 }}></div>
                                             </div>
-                                            <div style={{ width: '80px', textAlign: 'right' }}>
+                                            <div style={{ width: '70px', textAlign: 'right', fontSize: '0.8rem' }}>
                                                 {statsType === 'count' ? `${val}권` : `${val.toLocaleString()}자`}
                                             </div>
                                         </div>
@@ -258,8 +260,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                             <Sparkles color="#9b59b6" /> AI 독서 분석
                         </h2>
 
-                        <div className="glass-card" style={{ padding: '30px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '30px' }}>
+                        <div className="glass-card">
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '30px' }}>
                                 {users.map(u => (
                                     <div key={u.id} style={{
                                         padding: '15px',
@@ -306,44 +308,44 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                                         </div>
                                     ) : (
                                         <>
-                                            <div style={{ background: '#e3f2fd', padding: '20px', borderRadius: '15px', borderLeft: '5px solid #2196f3' }}>
+                                            <div style={{ background: '#e3f2fd', padding: '15px', borderRadius: '15px', borderLeft: '5px solid #2196f3' }}>
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#1565c0' }}>
                                                     <Activity size={20} /> 글쓰기 수준
                                                 </h4>
-                                                <p style={{ fontSize: '1.1rem', margin: 0, lineHeight: '1.6' }}>
+                                                <p style={{ fontSize: '1rem', margin: 0, lineHeight: '1.6' }}>
                                                     {typeof analysisResult.level === 'object' ? JSON.stringify(analysisResult.level) : analysisResult.level}
                                                 </p>
                                             </div>
 
-                                            <div style={{ background: '#f3e5f5', padding: '20px', borderRadius: '15px', borderLeft: '5px solid #9c27b0' }}>
+                                            <div style={{ background: '#f3e5f5', padding: '15px', borderRadius: '15px', borderLeft: '5px solid #9c27b0' }}>
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#7b1fa2' }}>
                                                     <TrendingUp size={20} /> 관심 분야
                                                 </h4>
-                                                <p style={{ fontSize: '1.1rem', margin: 0, lineHeight: '1.6' }}>
+                                                <p style={{ fontSize: '1rem', margin: 0, lineHeight: '1.6' }}>
                                                     {typeof analysisResult.interest === 'object' ? JSON.stringify(analysisResult.interest) : analysisResult.interest}
                                                 </p>
                                             </div>
 
-                                            <div style={{ background: '#e8f5e9', padding: '20px', borderRadius: '15px', borderLeft: '5px solid #4caf50' }}>
+                                            <div style={{ background: '#e8f5e9', padding: '15px', borderRadius: '15px', borderLeft: '5px solid #4caf50' }}>
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', color: '#2e7d32' }}>
                                                     <BookOpen size={20} /> 맞춤 도서 추천 (5권)
                                                 </h4>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
                                                     {Array.isArray(analysisResult.recommendations) ? analysisResult.recommendations.map((book: any, idx: number) => (
-                                                        <div key={idx} style={{ background: 'white', padding: '20px', borderRadius: '15px', border: '1px solid #e8ede8', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                            <div style={{ fontWeight: 'bold', color: '#2e7d32', fontSize: '1.1rem' }}>
+                                                        <div key={idx} style={{ background: 'white', padding: '15px', borderRadius: '15px', border: '1px solid #e8ede8', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
+                                                            <div style={{ fontWeight: 'bold', color: '#2e7d32', fontSize: '1rem', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                                                                 📚 {book.title}
                                                             </div>
-                                                            <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                                                            <div style={{ fontSize: '0.85rem', color: '#666' }}>
                                                                 저자: {book.author}
                                                             </div>
                                                             <div style={{ height: '1px', background: '#f0f0f0', margin: '5px 0' }}></div>
-                                                            <p style={{ fontSize: '0.95rem', color: '#444', lineHeight: '1.6', margin: 0 }}>
+                                                            <p style={{ fontSize: '0.9rem', color: '#444', lineHeight: '1.6', margin: 0 }}>
                                                                 {book.reason}
                                                             </p>
                                                         </div>
                                                     )) : (
-                                                        <p style={{ fontSize: '1.1rem', margin: 0 }}>{analysisResult.recommendations || "추천 정보를 불러올 수 없습니다."}</p>
+                                                        <p style={{ fontSize: '1rem', margin: 0 }}>{analysisResult.recommendations || "추천 정보를 불러올 수 없습니다."}</p>
                                                     )}
                                                 </div>
                                             </div>
