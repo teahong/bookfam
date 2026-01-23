@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Plus, BookOpen, Star, UserPlus, LogOut, Trash2, AlertCircle, X, ExternalLink, Pencil, Lock, Gift } from 'lucide-react';
 import KnowledgeGraph from './KnowledgeGraph';
 import { extractKeywords } from '../lib/gemini';
+import { searchAladinBooks } from '../lib/aladin';
 
 interface MainDashboardProps {
     userName: string;
@@ -97,25 +98,24 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
         setIsAutoFilling(true);
         setAiError(null);
         try {
-            // 직접 Google Books API 호출 (한글 검색 제한)
-            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(newBook.title)}&langRestrict=ko&printType=books`);
-            const data = await response.json();
+            // 알라딘 API를 사용하여 도서 검색 (Google Books 대체)
+            const results = await searchAladinBooks(newBook.title, 5);
 
-            if (data.items && data.items.length > 0) {
-                const book = data.items[0].volumeInfo;
+            if (results && results.length > 0) {
+                const book = results[0]; // 가장 유사한 첫 번째 결과 사용
                 setNewBook(prev => ({
                     ...prev,
                     title: book.title || prev.title,
-                    author: book.authors ? book.authors[0] : prev.author,
-                    publisher: book.publisher || prev.publisher,
-                    cover_url: book.imageLinks ? (book.imageLinks.thumbnail || book.imageLinks.smallThumbnail).replace('http:', 'https:') : prev.cover_url
+                    author: book.author || prev.author,
+                    publisher: book.categoryName.split('>')[0] || prev.publisher, // 카테고리의 대분류 혹은 정확한 분야
+                    cover_url: book.cover || prev.cover_url
                 }));
             } else {
-                setAiError("책을 찾을 수 없습니다.");
+                setAiError("알라딘에서 책을 찾을 수 없습니다.");
             }
         } catch (e: any) {
-            console.error("Cover auto-fetch failed", e);
-            setAiError(e.message || "표지 검색 실패");
+            console.error("Aladin fetch failed", e);
+            setAiError(e.message || "도서 검색 실패");
         } finally {
             setIsAutoFilling(false);
         }
