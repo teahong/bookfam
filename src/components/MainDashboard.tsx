@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, BookOpen, Star, UserPlus, LogOut, Trash2, AlertCircle, X, ExternalLink, Pencil, Lock, Gift } from 'lucide-react';
+import { Plus, BookOpen, Star, UserPlus, LogOut, Trash2, X, ExternalLink, Pencil, Lock, Gift } from 'lucide-react';
 import KnowledgeGraph from './KnowledgeGraph';
 import { extractKeywords } from '../lib/gemini';
 import { searchAladinBooks } from '../lib/aladin';
+
+import BookForm from './BookForm';
 
 interface MainDashboardProps {
     userName: string;
@@ -11,21 +13,26 @@ interface MainDashboardProps {
     onShowRecommended: () => void;
 }
 
+/**
+ * 메인 대시보드 컴포넌트
+ * 사용자의 독서 목록을 보여주고, 새로운 책을 기록하거나 지식 그래프를 확인할 수 있습니다.
+ */
 const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onShowRecommended }) => {
-    const [books, setBooks] = useState<any[]>([]);
-    const [showAddCard, setShowAddCard] = useState(false);
-    const [newBook, setNewBook] = useState({
-        id: '', // 수정 모드를 위한 ID 추가
+    // --- 상태 관리 ---
+    const [books, setBooks] = useState<any[]>([]);          // 도서 목록
+    const [showAddCard, setShowAddCard] = useState(false);  // 등록 폼 표시 여부
+    const [newBook, setNewBook] = useState({                // 작성 중인 도서 정보
+        id: '',
         title: '', author: '', publisher: '', cover_url: '',
         rating: 5, review_content: '', recommend_to: '', link: '',
         read_date: new Date().toISOString().split('T')[0]
     });
-    const [isEditing, setIsEditing] = useState(false); // 수정 모드 상태
-    const [isAutoFilling, setIsAutoFilling] = useState(false);
-    const [aiError, setAiError] = useState<string | null>(null);
-    const [users, setUsers] = useState<any[]>([]);
+    const [isEditing, setIsEditing] = useState(false);     // 수정 모드 활성화 여부
+    const [isAutoFilling, setIsAutoFilling] = useState(false); // AI 로딩 상태
+    const [aiError, setAiError] = useState<string | null>(null); // AI 에러 메시지
+    const [users, setUsers] = useState<any[]>([]);          // 추천 대상 유저 목록
 
-    // 상세 보기 및 PIN 상태
+    // 상세 보기 및 삭제 보안을 위한 상태
     const [selectedBook, setSelectedBook] = useState<any>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -33,11 +40,15 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
     const [pinError, setPinError] = useState('');
     const [currentUserPin, setCurrentUserPin] = useState<string | null>(null);
 
+    // 컴포넌트 마운트 시 데이터 초기화
     useEffect(() => {
         fetchMyBooks();
         fetchUsers();
     }, []);
 
+    /**
+     * 유저 목록과 현재 유저의 PIN 정보를 가져옵니다.
+     */
     const fetchUsers = async () => {
         const { data } = await supabase.from('users').select('id, name, pin');
         if (data) {
@@ -47,6 +58,9 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
         }
     };
 
+    /**
+     * 현재 로그인한 사용자의 독서 기록을 가져옵니다.
+     */
     const fetchMyBooks = async () => {
         const { data } = await supabase
             .from('books')
@@ -56,6 +70,9 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
         if (data) setBooks(data);
     };
 
+    /**
+     * 외부 링크(예: 예스24)를 통해 도서 정보를 AI로 추출합니다. (Supabase Edge Function 사용)
+     */
     const handleAutoFill = async () => {
         if (!newBook.link) return;
         setIsAutoFilling(true);
@@ -66,9 +83,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
                 body: { type: 'link', content: newBook.link }
             });
 
-            if (data && data.error) {
-                throw new Error(data.error);
-            }
+            if (data && data.error) throw new Error(data.error);
 
             if (data) {
                 setNewBook(prev => ({
@@ -81,54 +96,53 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
             }
             if (error) throw error;
         } catch (err: any) {
-            console.error("AI 오류:", err);
-            const msg = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
-            setAiError('도서 정보를 가져오는데 실패했습니다: ' + msg);
+            console.error("AI 정보 추출 실패:", err);
+            setAiError('도서 정보를 가져오는데 실패했습니다. 직접 입력해 주세요.');
         } finally {
             setIsAutoFilling(false);
         }
     };
 
-
+    /**
+     * 알라딘 API를 사용하여 도서 제목으로 상세 정보 및 표지를 검색합니다.
+     */
     const handleSearchCover = async () => {
         if (!newBook.title) {
-            setAiError("제목을 입력해주세요.");
+            setAiError("제목을 먼저 입력해주세요.");
             return;
         }
         setIsAutoFilling(true);
         setAiError(null);
         try {
-            // 알라딘 API를 사용하여 도서 검색 (Google Books 대체)
             const results = await searchAladinBooks(newBook.title, 5);
-
             if (results && results.length > 0) {
-                const book = results[0]; // 가장 유사한 첫 번째 결과 사용
+                const book = results[0];
                 setNewBook(prev => ({
                     ...prev,
                     title: book.title || prev.title,
                     author: book.author || prev.author,
-                    publisher: book.categoryName.split('>')[0] || prev.publisher, // 카테고리의 대분류 혹은 정확한 분야
+                    publisher: book.categoryName.split('>')[0] || prev.publisher,
                     cover_url: book.cover || prev.cover_url
                 }));
             } else {
-                setAiError("알라딘에서 책을 찾을 수 없습니다.");
+                setAiError("알라딘에서 검색 결과를 찾을 수 없습니다.");
             }
         } catch (e: any) {
-            console.error("Aladin fetch failed", e);
-            setAiError(e.message || "도서 검색 실패");
+            console.error("Aladin 검색 실패:", e);
+            setAiError("도서 검색 중 오류가 발생했습니다.");
         } finally {
             setIsAutoFilling(false);
         }
     };
 
-
-    // ... (existing imports)
-
+    /**
+     * 작성된 도서 정보를 데이터베이스에 저장(또는 수정)합니다.
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const wordCount = newBook.review_content.trim().length;
 
-        // 감상문 내용이 충분하면 AI 키워드 추출
+        // 감상문 내용이 충분히 길면 AI 키워드 추출 시도
         let keywords: string[] = [];
         if (newBook.review_content.length > 20) {
             keywords = await extractKeywords(newBook.review_content);
@@ -146,7 +160,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
             read_date: newBook.read_date,
             link: newBook.link,
             user_id: userName,
-            keywords: keywords // 추출된 키워드 저장
+            keywords: keywords
         };
 
         const { error } = isEditing && newBook.id
@@ -166,11 +180,17 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
         }
     };
 
+    /**
+     * 특정 도서 카드를 클릭했을 때 상세 모달을 엽니다.
+     */
     const handleBookClick = (book: any) => {
         setSelectedBook(book);
         setIsDetailOpen(true);
     };
 
+    /**
+     * 상세 보기 모달 내에서 수정 버튼을 눌렀을 때의 동작
+     */
     const handleEditFromDetail = () => {
         setIsDetailOpen(false);
         setNewBook({
@@ -190,12 +210,18 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    /**
+     * 삭제 요청 시 PIN(비밀번호) 확인 모달을 띄웁니다.
+     */
     const handleDeleteRequest = () => {
         setIsPinModalOpen(true);
         setPinInput('');
         setPinError('');
     };
 
+    /**
+     * PIN 확인 후 실제 삭제를 진행합니다.
+     */
     const confirmDelete = async () => {
         if (pinInput !== currentUserPin) {
             setPinError('비밀번호가 일치하지 않습니다.');
@@ -215,20 +241,22 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
 
     return (
         <div className="dashboard-container">
+            {/* 상단 헤더 섹션 */}
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem' }}>안녕하세요, <span style={{ color: 'var(--primary)' }}>{userName}</span>님!</h1>
-                    <p>오늘의 지식을 기록해보세요.</p>
+                    <h1 style={{ fontSize: '2.5rem', marginBottom: '8px' }}>안녕하세요, <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{userName}</span>님!</h1>
+                    <p style={{ fontSize: '1.1rem', color: '#666' }}>오늘 당신의 마음을 두드린 책은 무엇인가요? 📖</p>
                 </div>
-                <button className="btn" onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button className="btn" onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px' }}>
                     <LogOut size={18} /> 로그아웃
                 </button>
             </header>
 
+            {/* 도서 등록 섹션 (신규 등록 버튼 또는 입력 폼) */}
             {!showAddCard ? (
                 <div
-                    className="glass-card"
-                    style={{ padding: '30px', textAlign: 'center', cursor: 'pointer', borderStyle: 'dashed', borderWidth: '2px' }}
+                    className="glass-card add-book-trigger"
+                    style={{ padding: '40px', textAlign: 'center', cursor: 'pointer', border: '2px dashed var(--primary)', background: 'rgba(99, 102, 241, 0.02)' }}
                     onClick={() => {
                         setIsEditing(false);
                         setNewBook({
@@ -240,209 +268,25 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
                         setShowAddCard(true);
                     }}
                 >
-                    <Plus size={40} color="var(--primary)" style={{ marginBottom: '10px' }} />
-                    <h3>새로운 책 등록하기</h3>
-                    <p>링크나 검색으로 간편하게 등록하세요.</p>
+                    <div style={{ width: '60px', height: '60px', background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px', color: 'white' }}>
+                        <Plus size={36} />
+                    </div>
+                    <h3 style={{ fontSize: '1.4rem', color: 'var(--primary)' }}>새로운 책 기록하기</h3>
+                    <p style={{ color: '#666' }}>AI 검색과 링크 자동 완성으로 쉽고 편리하게 기록하세요.</p>
                 </div>
             ) : (
-                <div className="glass-card" style={{ marginBottom: '30px' }}>
-                    <h3>{isEditing ? '책 정보 수정' : '새 책 등록'}</h3>
-                    <form onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
-                        <div style={{ marginBottom: '15px' }}>
-                            <label>도서 정보 가져오기</label>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
-                                <div style={{ flex: 1, minWidth: '200px' }}>
-                                    <input
-                                        type="text"
-                                        className="input-field"
-                                        placeholder="도서 링크 입력 (URL)"
-                                        value={newBook.link}
-                                        onChange={e => setNewBook({ ...newBook, link: e.target.value })}
-                                    />
-                                </div>
-                                <button type="button" className="btn btn-primary" onClick={handleAutoFill} disabled={isAutoFilling && !newBook.link}>
-                                    {isAutoFilling && !newBook.link ? '추출 중...' : '링크로 정보 추출'}
-                                </button>
-
-                            </div>
-                            {aiError && (
-                                <div style={{ marginTop: '10px', padding: '10px', background: '#ffebee', color: '#c62828', borderRadius: '8px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <AlertCircle size={16} /> {aiError}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="form-row">
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'grid', gap: '15px', marginBottom: '15px' }}>
-                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                        <input
-                                            type="text"
-                                            className="input-field"
-                                            placeholder="제목"
-                                            value={newBook.title}
-                                            onChange={(e) => setNewBook({ ...newBook, title: e.target.value })}
-                                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearchCover(); } }}
-                                            required
-                                            style={{ flex: 1 }}
-                                        />
-                                        <button type="button" className="btn btn-primary" onClick={handleSearchCover} disabled={isAutoFilling}>
-                                            검색
-                                        </button>
-                                        <button type="button" className="btn btn-secondary" onClick={() => setNewBook({ ...newBook, title: '', author: '', publisher: '', cover_url: '' })}>
-                                            직접 입력
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
-                                    <input
-                                        type="text"
-                                        className="input-field"
-                                        placeholder="작가"
-                                        value={newBook.author}
-                                        onChange={(e) => setNewBook({ ...newBook, author: e.target.value })}
-                                    />
-                                    <input
-                                        type="text"
-                                        className="input-field"
-                                        placeholder="출판사"
-                                        value={newBook.publisher}
-                                        onChange={(e) => setNewBook({ ...newBook, publisher: e.target.value })}
-                                    />
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                    <div>
-                                        <label style={{ fontSize: '0.9rem', color: '#666', marginBottom: '5px', display: 'block' }}>읽은 날짜</label>
-                                        <input
-                                            type="date" className="input-field"
-                                            value={newBook.read_date} onChange={e => setNewBook({ ...newBook, read_date: e.target.value })} required
-                                        />
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                                        <label style={{ fontSize: '0.9rem', color: '#666' }}>평점</label>
-                                        <div style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
-                                            {[1, 2, 3, 4, 5].map(s => (
-                                                <Star
-                                                    key={s} size={24} fill={s <= newBook.rating ? "gold" : "none"} stroke="gold"
-                                                    onClick={() => setNewBook({ ...newBook, rating: s })} style={{ cursor: 'pointer' }}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 표지 미리보기 섹션 */}
-                            <div className="cover-preview-container" style={{ width: '200px', flexShrink: 0 }}>
-                                <div
-                                    style={{
-                                        width: '100%',
-                                        aspectRatio: '1 / 1.5',
-                                        backgroundColor: '#f8f9fa',
-                                        borderRadius: '12px',
-                                        border: '2px dashed #ced4da',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        overflow: 'hidden',
-                                        color: '#adb5bd',
-                                        flexDirection: 'column',
-                                        textAlign: 'center',
-                                        fontSize: '0.9rem',
-                                        boxShadow: 'inset 0 0 20px rgba(0,0,0,0.05)',
-                                        cursor: 'pointer',
-                                        position: 'relative'
-                                    }}
-                                    onClick={() => {
-                                        if (!newBook.cover_url) {
-                                            const url = prompt("이미지 주소를 입력하세요 (URL):");
-                                            if (url) setNewBook({ ...newBook, cover_url: url });
-                                        }
-                                    }}
-                                >
-                                    {newBook.cover_url ? (
-                                        <>
-                                            <img src={newBook.cover_url} alt="표지" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            <div
-                                                style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.5)', padding: '5px', borderRadius: '50%' }}
-                                                onClick={(e) => { e.stopPropagation(); setNewBook({ ...newBook, cover_url: '' }); }}
-                                            >
-                                                <Trash2 size={14} color="white" />
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <BookOpen size={32} style={{ marginBottom: '10px', opacity: 0.5 }} />
-                                            <span>클릭하여<br />이미지 링크 입력</span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style={{ marginBottom: '15px' }}>
-                            <label>독서 감상문</label>
-                            <textarea
-                                className="input-field"
-                                style={{ height: '120px', marginTop: '5px', resize: 'none' }}
-                                value={newBook.review_content}
-                                onChange={(e) => setNewBook({ ...newBook, review_content: e.target.value })}
-                                placeholder="책을 읽고 느낀 점을 적어주세요."
-                                required
-                            ></textarea>
-                            <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#666', marginTop: '5px' }}>
-                                {newBook.review_content.length}자
-                            </div>
-                        </div>
-
-                        <div style={{ marginBottom: '20px' }}>
-                            <label style={{ display: 'block', marginBottom: '10px' }}>누구에게 추천하고 싶나요?</label>
-                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                {users.map(u => {
-                                    const isSelected = newBook.recommend_to.includes(u.name);
-                                    return (
-                                        <button
-                                            key={u.id}
-                                            type="button"
-                                            onClick={() => {
-                                                const current = newBook.recommend_to ? newBook.recommend_to.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-                                                let next;
-                                                if (isSelected) {
-                                                    next = current.filter((n: string) => n !== u.name);
-                                                } else {
-                                                    next = [...current, u.name];
-                                                }
-                                                setNewBook({ ...newBook, recommend_to: next.join(', ') });
-                                            }}
-                                            style={{
-                                                padding: '8px 16px',
-                                                borderRadius: '20px',
-                                                border: 'none',
-                                                background: isSelected ? 'var(--primary)' : '#e0e0e0',
-                                                color: isSelected ? 'white' : '#333',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s',
-                                                fontWeight: isSelected ? '600' : 'normal',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '5px'
-                                            }}
-                                        >
-                                            {isSelected && <UserPlus size={14} />}
-                                            {u.name}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                            <button type="button" className="btn" onClick={() => setShowAddCard(false)} style={{ flex: 1 }}>취소</button>
-                            <button type="submit" className="btn btn-primary" style={{ flex: 2 }}>기록 저장하기</button>
-                        </div>
-                    </form>
-                </div>
+                <BookForm
+                    isEditing={isEditing}
+                    book={newBook}
+                    setBook={setNewBook}
+                    users={users}
+                    isAutoFilling={isAutoFilling}
+                    aiError={aiError}
+                    onCancel={() => setShowAddCard(false)}
+                    onSubmit={handleSubmit}
+                    onAutoFill={handleAutoFill}
+                    onSearchCover={handleSearchCover}
+                />
             )}
 
 
