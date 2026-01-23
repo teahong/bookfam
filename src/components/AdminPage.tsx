@@ -328,21 +328,29 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
 
                                             <div style={{ background: '#e8f5e9', padding: '15px', borderRadius: '15px', borderLeft: '5px solid #4caf50' }}>
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', color: '#2e7d32' }}>
-                                                    <BookOpen size={20} /> 맞춤 도서 추천 (5권)
+                                                    <BookOpen size={20} /> 맞춤 도서 추천 (10권)
                                                 </h4>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '15px' }}>
                                                     {Array.isArray(analysisResult.recommendations) ? analysisResult.recommendations.map((book: any, idx: number) => (
-                                                        <div key={idx} style={{ background: 'white', padding: '15px', borderRadius: '15px', border: '1px solid #e8ede8', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
-                                                            <div style={{ fontWeight: 'bold', color: '#2e7d32', fontSize: '1rem', whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                                                                📚 {book.title}
+                                                        <div key={idx} style={{ background: 'white', padding: '15px', borderRadius: '15px', border: '1px solid #e8ede8', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', display: 'flex', gap: '15px', minWidth: 0, overflow: 'hidden' }}>
+                                                            {/* Cover Image */}
+                                                            {book.cover_url && (
+                                                                <div style={{ flexShrink: 0, width: '80px', height: '110px', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                                                                    <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                </div>
+                                                            )}
+                                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                                                <div style={{ fontWeight: 'bold', color: '#2e7d32', fontSize: '1rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>
+                                                                    {book.title}
+                                                                </div>
+                                                                <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                                                                    저자: {book.author}
+                                                                </div>
+                                                                {/* Helper line only if needed, maybe cleaner without it but user asked 'attachment' look. Let's keep it simple. */}
+                                                                <p style={{ fontSize: '0.9rem', color: '#444', lineHeight: '1.6', margin: '5px 0 0 0', flex: 1 }}>
+                                                                    {book.reason}
+                                                                </p>
                                                             </div>
-                                                            <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                                                                저자: {book.author}
-                                                            </div>
-                                                            <div style={{ height: '1px', background: '#f0f0f0', margin: '5px 0' }}></div>
-                                                            <p style={{ fontSize: '0.9rem', color: '#444', lineHeight: '1.6', margin: 0 }}>
-                                                                {book.reason}
-                                                            </p>
                                                         </div>
                                                     )) : (
                                                         <p style={{ fontSize: '1rem', margin: 0 }}>{analysisResult.recommendations || "추천 정보를 불러올 수 없습니다."}</p>
