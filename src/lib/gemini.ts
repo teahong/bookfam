@@ -22,7 +22,7 @@ export const extractKeywords = async (text: string): Promise<string[]> => {
     if (!text || text.length < 10) return [];
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
         const prompt = `
       다음 독서 기록을 분석하여 핵심적인 주제, 감정, 또는 소재를 나타내는 키워드를 정확히 5개 추출해줘.
@@ -61,7 +61,7 @@ export async function analyzeReadingPatterns(userName: string, reviews: string[]
     try {
         // 응답 형식을 JSON으로 고정하기 위해 configuration 설정
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash-exp",
+            model: "gemini-1.5-flash",
             generationConfig: {
                 responseMimeType: "application/json",
             }
