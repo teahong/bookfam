@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Sparkles, BookOpen, Activity, TrendingUp, ExternalLink, Printer, Share2 } from 'lucide-react';
+import { BookOpen, Activity, TrendingUp, ExternalLink, Printer, Share2 } from 'lucide-react';
 
 interface StandaloneReportPageProps {
     userName: string;
