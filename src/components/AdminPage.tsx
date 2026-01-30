@@ -165,12 +165,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
     return (
         <div className="dashboard-container" style={{ animation: 'fadeIn 0.5s' }}>
             {/* 상단 헤더: 뒤로가기 및 제목 */}
-            <header style={{ display: 'flex', alignItems: 'center', marginBottom: '40px', gap: '20px' }}>
+            <header style={{ display: 'flex', alignItems: 'center', marginBottom: '40px', gap: '20px', flexWrap: 'wrap' }}>
                 <button onClick={onBack} className="btn-icon" style={{ background: 'white', padding: '10px', borderRadius: '50%', border: '1px solid #eee', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <ArrowLeft size={24} color="#333" />
                 </button>
                 <div>
-                    <h1 style={{ fontSize: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h1 style={{ fontSize: 'min(2rem, 6vw)', display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <Lock color="var(--primary)" size={28} /> 관리자 리포트
                     </h1>
                     <p style={{ color: '#666' }}>우리 가족의 독서 성장을 한눈에 관리하세요.</p>
@@ -212,13 +212,13 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                             <div className="glass-card" style={{ textAlign: 'center', padding: '25px' }}>
                                 <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '10px' }}>전체 누적 기록</div>
-                                <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--primary)' }}>
+                                <div style={{ fontSize: 'min(2.5rem, 8vw)', fontWeight: '800', color: 'var(--primary)', lineHeight: 1.2 }}>
                                     {statsType === 'count' ? `${totalBooks}권` : `${totalLength.toLocaleString()}자`}
                                 </div>
                             </div>
                             <div className="glass-card" style={{ textAlign: 'center', padding: '25px', border: '1px solid #ffedd5' }}>
                                 <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '10px' }}>🏅 최다 독서왕</div>
-                                <div style={{ fontSize: '2rem', fontWeight: '800', color: '#ea580c' }}>
+                                <div style={{ fontSize: 'min(2rem, 7vw)', fontWeight: '800', color: '#ea580c', lineHeight: 1.2 }}>
                                     {readingKing ? readingKing.name : '-'}
                                     <div style={{ fontSize: '1rem', color: '#94a3b8', fontWeight: '500', marginTop: '5px' }}>
                                         {statsType === 'count' ? `${readingKing?.count}권 완료` : `${readingKing?.length.toLocaleString()}자 작성`}
@@ -261,7 +261,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                             <p style={{ marginBottom: '20px', color: '#64748b' }}>분석 대상 유저를 선택하고 AI 리포트를 생성하세요. (연령 정보를 입력하면 더 정확한 추천이 가능합니다.)</p>
 
                             {/* 유저 선택 및 연령 수정 UI */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '15px', marginBottom: '30px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '15px', marginBottom: '30px' }}>
                                 {users.map(u => (
                                     <div
                                         key={u.id}
@@ -320,7 +320,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', color: '#15803d', fontWeight: '700' }}>
                                                     <BookOpen size={20} /> 실시간 추천 도서 (TOP 10)
                                                 </h4>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: '20px' }}>
                                                     {Array.isArray(analysisResult.recommendations) && analysisResult.recommendations.map((book: any, idx: number) => (
                                                         <div key={idx} className="glass-card" style={{ display: 'flex', gap: '15px', border: '1px solid #dcfce7', padding: '15px', transition: 'transform 0.2s' }}>
                                                             {book.cover_url && (
