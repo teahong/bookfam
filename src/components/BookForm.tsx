@@ -96,7 +96,7 @@ const BookForm: React.FC<BookFormProps> = ({
                         </div>
 
                         {/* 작가 및 출판사 */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px', marginBottom: '15px' }}>
                             <div>
                                 <label style={{ fontWeight: '600', display: 'block', marginBottom: '5px' }}>작가</label>
                                 <input
@@ -120,7 +120,7 @@ const BookForm: React.FC<BookFormProps> = ({
                         </div>
 
                         {/* 날짜 및 평점 */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px' }}>
                             <div>
                                 <label style={{ fontWeight: '600', display: 'block', marginBottom: '5px' }}>읽은 날짜</label>
                                 <input
@@ -137,7 +137,7 @@ const BookForm: React.FC<BookFormProps> = ({
                                     {[1, 2, 3, 4, 5].map(s => (
                                         <Star
                                             key={s}
-                                            size={28}
+                                            size={24}
                                             fill={s <= book.rating ? "#FFD700" : "none"}
                                             stroke="#FFD700"
                                             onClick={() => setBook({ ...book, rating: s })}
@@ -258,7 +258,7 @@ const BookForm: React.FC<BookFormProps> = ({
                 </div>
 
                 {/* 하단 버튼 섹션 */}
-                <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid #edf2f7', paddingTop: '25px' }}>
+                <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid #edf2f7', paddingTop: '25px', flexWrap: 'wrap' }}>
                     <button
                         type="button"
                         className="btn"
