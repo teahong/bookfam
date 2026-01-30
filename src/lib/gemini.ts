@@ -61,7 +61,7 @@ export async function analyzeReadingPatterns(userName: string, reviews: string[]
     try {
         // 응답 형식을 JSON으로 고정하기 위해 configuration 설정
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
+            model: "gemini-3-pro-preview",
             generationConfig: {
                 responseMimeType: "application/json",
             }
