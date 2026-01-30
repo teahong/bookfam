@@ -212,3 +212,46 @@ select.input-field {
     margin: 0 auto;
   }
 }
+/* Print Styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .no-print, 
+  button:not(.always-visible),
+  .btn-icon,
+  .btn-primary { 
+    display: none !important; 
+  }
+  
+  .dashboard-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+  
+  .glass-card {
+    background: white !important;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    margin-bottom: 20px !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Header adjustment */
+  header {
+    margin-bottom: 20px !important;
+  }
+  
+  /* Text color adjustment */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

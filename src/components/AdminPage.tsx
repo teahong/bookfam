@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, BookOpen, Lock, Activity, Sparkles, TrendingUp, BarChart2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Lock, Activity, Sparkles, TrendingUp, BarChart2, ExternalLink, Share2 } from 'lucide-react';
 import { analyzeReadingPatterns } from '../lib/gemini';
 
 interface AdminPageProps {
@@ -162,11 +162,23 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
         setIsAnalyzing(false);
     };
 
+    /**
+     * 공유 페이지로 이동
+     */
+    const handleOpenSharePage = () => {
+        if (!selectedUser) return;
+        // StandaloneReportPage로 이동 (새 탭) 또는 현재 창 이동
+        // 앱 내 라우팅을 위해 URL을 변경하고 리로딩 없이 App.tsx가 감지하게 하거나, 
+        // 간단히 href 변경으로 처리. 여기서는 새 탭 열기로 '공유용 화면' 느낌을 줌.
+        const shareUrl = `${window.location.origin}${window.location.pathname}?mode=report&user=${encodeURIComponent(selectedUser)}`;
+        window.open(shareUrl, '_blank');
+    };
+
     return (
         <div className="dashboard-container" style={{ animation: 'fadeIn 0.5s' }}>
             {/* 상단 헤더: 뒤로가기 및 제목 */}
             <header style={{ display: 'flex', alignItems: 'center', marginBottom: '40px', gap: '20px', flexWrap: 'wrap' }}>
-                <button onClick={onBack} className="btn-icon" style={{ background: 'white', padding: '10px', borderRadius: '50%', border: '1px solid #eee', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <button onClick={onBack} className="btn-icon no-print" style={{ background: 'white', padding: '10px', borderRadius: '50%', border: '1px solid #eee', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <ArrowLeft size={24} color="#333" />
                 </button>
                 <div>
@@ -253,15 +265,24 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
 
                     {/* 2. AI 독서 분석 섹션 */}
                     <section>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <Sparkles color="#8b5cf6" /> AI 심층 독서 분석 리포트
+                        <h2 style={{ fontSize: '1.5rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Sparkles color="#8b5cf6" /> AI 심층 독서 분석 리포트
+                            </div>
+                            {analysisResult && !(analysisResult as any).error && (
+                                <div className="no-print" style={{ display: 'flex', gap: '8px' }}>
+                                    <button onClick={handleOpenSharePage} className="btn-icon" title="공유 페이지 열기" style={{ background: 'var(--primary)', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', color: 'white', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                                        <Share2 size={16} /> <span>공유 / 인쇄</span>
+                                    </button>
+                                </div>
+                            )}
                         </h2>
 
-                        <div className="glass-card" style={{ padding: '30px' }}>
+                        <div className="glass-card print-target" style={{ padding: '30px' }}>
                             <p style={{ marginBottom: '20px', color: '#64748b' }}>분석 대상 유저를 선택하고 AI 리포트를 생성하세요. (연령 정보를 입력하면 더 정확한 추천이 가능합니다.)</p>
 
-                            {/* 유저 선택 및 연령 수정 UI */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '15px', marginBottom: '30px' }}>
+                            {/* 유저 선택 및 연령 수정 UI (인쇄 시 숨김) */}
+                            <div className="no-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '15px', marginBottom: '30px' }}>
                                 {users.map(u => (
                                     <div
                                         key={u.id}
@@ -289,7 +310,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                                 ))}
                             </div>
 
-                            <button className="btn btn-primary" onClick={handleAnalyze} disabled={isAnalyzing} style={{ width: '100%', padding: '16px', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                            <button className="btn btn-primary no-print" onClick={handleAnalyze} disabled={isAnalyzing} style={{ width: '100%', padding: '16px', fontSize: '1.1rem', fontWeight: 'bold' }}>
                                 {isAnalyzing ? '✨ Gemini AI가 데이터를 분석하고 있습니다...' : `${selectedUser}님을 위한 AI 추천 리포트 생성`}
                             </button>
 
@@ -328,10 +349,29 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
                                                                     <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                                 </div>
                                                             )}
-                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                                                                 <div style={{ fontWeight: '700', fontSize: '1rem', color: '#166534', marginBottom: '4px', lineHeight: '1.3' }}>{book.title}</div>
-                                                                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '8px' }}>{book.author}</div>
-                                                                <p style={{ fontSize: '0.9rem', color: '#374151', margin: 0, lineHeight: '1.5' }}>{book.reason}</p>
+                                                                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '8px' }}>{book.author} ({book.rank}점)</div>
+                                                                <p style={{ fontSize: '0.9rem', color: '#374151', margin: '0 0 10px 0', lineHeight: '1.5', flex: 1 }}>{book.reason}</p>
+
+                                                                {book.link && (
+                                                                    <a
+                                                                        href={book.link}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="no-print"
+                                                                        style={{
+                                                                            display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                                                            background: '#ecfccb', color: '#4d7c0f',
+                                                                            padding: '6px 12px', borderRadius: '8px',
+                                                                            textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold',
+                                                                            alignSelf: 'flex-start', border: '1px solid #bef264',
+                                                                            marginTop: 'auto'
+                                                                        }}
+                                                                    >
+                                                                        <ExternalLink size={14} /> 알라딘에서 보기
+                                                                    </a>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     ))}
