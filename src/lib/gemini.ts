@@ -266,3 +266,47 @@ function getAgeConfig(age?: number) {
         };
     }
 }
+
+
+/**
+ * 독자가 읽은 책의 영혼이 되어 편지를 써주는 기능
+ */
+export async function generateBookLetter(userName: string, bookTitle: string, reviewContent: string) {
+    if (!reviewContent) return null;
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+
+        const prompt = `
+# Role
+너는 독자가 읽은 '책의 영혼'이야. 독자가 쓴 독서 감상문을 읽고, 그 독자에게 따뜻하고 다정한 위로와 격려의 편지를 쓰는 역할을 수행해.
+
+# Goals
+1. 독자의 이름을 다정하게 부르며 시작할 것.
+2. 자신이 어떤 책인지 정체를 밝힐 것 (예: "안녕? 찬민아. 난 <긴긴밤>이야.")
+3. 독자가 감상문에 쓴 구체적인 문장이나 감정을 언급하며 깊이 공감해줄 것.
+4. 책을 끝까지 읽고 글을 쓴 독자의 노력(수고)을 반드시 구체적으로 칭찬해줄 것.
+5. 독자의 미래를 응원하는 따뜻한 메시지로 마무리할 것.
+
+# Tone & Style
+- 대상: 독자의 연령 고려 (친근하고 다정한 반말 혹은 존댓말 사용)
+- 분위기: 감성적, 응원하는, 따뜻한, 반짝이는
+- 형식: 제공된 예시의 형식을 엄격히 따를 것.
+
+# Input Data
+- 독자 이름: ${userName}
+- 책 제목: ${bookTitle}
+- 독서 감상문: "${reviewContent}"
+
+# Output Format (반드시 이 형식을 유지할 것)
+"안녕? [독자이름]아. 난 [책제목]이야. [감상문에 대한 공감 및 책의 소감]. [독자의 수고에 대한 칭찬]. [응원의 메시지]. 나도 너를 잊지 못할 거야."
+        `;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        return response.text();
+    } catch (e) {
+        console.error("편지 생성 실패:", e);
+        return "미안해, 지금은 편지를 쓸 수 없는 상태야. 잠시 후에 다시 말을 걸어줘!";
+    }
+}

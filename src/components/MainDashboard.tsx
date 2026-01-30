@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, BookOpen, Star, UserPlus, LogOut, Trash2, X, ExternalLink, Pencil, Lock, Gift } from 'lucide-react';
+import { Plus, BookOpen, Star, UserPlus, LogOut, Trash2, X, ExternalLink, Pencil, Lock, Gift, Mail } from 'lucide-react';
 import KnowledgeGraph from './KnowledgeGraph';
-import { extractKeywords } from '../lib/gemini';
+import { extractKeywords, generateBookLetter } from '../lib/gemini';
 import { searchAladinBooks } from '../lib/aladin';
 
 import BookForm from './BookForm';
@@ -39,6 +39,10 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
     const [pinInput, setPinInput] = useState('');
     const [pinError, setPinError] = useState('');
     const [currentUserPin, setCurrentUserPin] = useState<string | null>(null);
+
+    // 책의 편지 관련 상태
+    const [bookLetter, setBookLetter] = useState<string | null>(null);
+    const [isGeneratingLetter, setIsGeneratingLetter] = useState(false);
 
     // 컴포넌트 마운트 시 데이터 초기화
     useEffect(() => {
@@ -185,6 +189,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
      */
     const handleBookClick = (book: any) => {
         setSelectedBook(book);
+        setBookLetter(null); // 모달 열 때 편지 내용 초기화 (숨김 상태)
         setIsDetailOpen(true);
     };
 
@@ -447,6 +452,102 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ userName, onLogout, onSho
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#e3f2fd', padding: '15px', borderRadius: '12px', color: '#1565c0' }}>
                                             <UserPlus size={20} />
                                             <span style={{ fontWeight: 'bold' }}>{selectedBook.recommend_to}</span> 님에게 이 책을 추천해요!
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 책의 편지 섹션 */}
+                                <div style={{ marginTop: '30px' }}>
+                                    {!bookLetter && !isGeneratingLetter && (
+                                        <button
+                                            onClick={async () => {
+                                                // 1. 이미 저장된 편지가 있는지 확인
+                                                if (selectedBook.book_letter) {
+                                                    setBookLetter(selectedBook.book_letter);
+                                                    return;
+                                                }
+
+                                                // 2. 없으면 새로 생성
+                                                setIsGeneratingLetter(true);
+                                                try {
+                                                    const letter = await generateBookLetter(userName, selectedBook.title, selectedBook.review_content);
+
+                                                    if (letter) {
+                                                        // DB에 저장
+                                                        const { error } = await supabase
+                                                            .from('books')
+                                                            .update({ book_letter: letter })
+                                                            .eq('id', selectedBook.id);
+
+                                                        if (!error) {
+                                                            // 로컬 상태 업데이트
+                                                            setBookLetter(letter);
+                                                            // 전체 목록도 갱신하여 캐싱된 데이터 업데이트
+                                                            setBooks(prevBooks => prevBooks.map(b =>
+                                                                b.id === selectedBook.id ? { ...b, book_letter: letter } : b
+                                                            ));
+                                                            // 현재 선택된 책 정보도 업데이트 (다음 번 클릭 시 바로 뜨게)
+                                                            setSelectedBook((prev: any) => ({ ...prev, book_letter: letter }));
+                                                        } else {
+                                                            console.error("편지 저장 실패:", error);
+                                                            setBookLetter(letter); // 저장은 실패했어도 일단 보여줌
+                                                        }
+                                                    }
+                                                } catch (err) {
+                                                    console.error("편지 생성 중 오류:", err);
+                                                } finally {
+                                                    setIsGeneratingLetter(false);
+                                                }
+                                            }}
+                                            className="btn-primary"
+                                            style={{
+                                                width: '100%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '10px',
+                                                padding: '15px',
+                                                fontSize: '1.1rem',
+                                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                                color: 'white',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)'
+                                            }}
+                                        >
+                                            <Mail size={20} /> 편지가 도착했어요
+                                        </button>
+                                    )}
+
+                                    {isGeneratingLetter && (
+                                        <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                                            <div className="loading-spinner" style={{ margin: '0 auto 10px' }}></div>
+                                            <p>책의 영혼이 편지를 쓰고 있어요... ✨</p>
+                                        </div>
+                                    )}
+
+                                    {bookLetter && (
+                                        <div style={{
+                                            background: '#fff9c4', // 따뜻한 편지지 색상
+                                            backgroundImage: 'linear-gradient(#e1e1e1 1px, transparent 1px)', // 노트 줄무늬 효과
+                                            backgroundSize: '100% 2em',
+                                            padding: '30px',
+                                            borderRadius: '10px',
+                                            boxShadow: '5px 5px 15px rgba(0,0,0,0.1)',
+                                            position: 'relative',
+                                            fontFamily: '"Gaegu", "Nanum Pen Script", cursive', // 손글씨 느낌 폰트 권장 (없으면 기본)
+                                            lineHeight: '2em',
+                                            fontSize: '1.1rem',
+                                            color: '#4a4a4a'
+                                        }}>
+                                            <div style={{ position: 'absolute', top: '-15px', left: '20px', fontSize: '2rem' }}>💌</div>
+                                            <h4 style={{ margin: '0 0 15px 0', color: '#5d4037', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                To. {userName}
+                                            </h4>
+                                            <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
+                                                {bookLetter}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
