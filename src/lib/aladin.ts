@@ -4,10 +4,12 @@ import axios from 'axios';
  * 알라딘 도서 검색 API 연동 모듈
  * 
  * VITE_ALADIN_API_KEY: .env 파일에 설정된 알라딘 TTB 키
- * PROXY_BASE_URL: CORS 문제를 피하기 위해 설정된 프록시 경로 (vite.config.ts 및 vercel.json에 설정됨)
+ * PROXY_BASE_URL: CORS 문제를 피하기 위해 설정된 프록시 경로
+ * - 로컬 개발: vite.config.ts 프록시 사용
+ * - Vercel 배포: api/aladin-search.js 서버리스 함수 사용
  */
 const ALADIN_API_KEY = import.meta.env.VITE_ALADIN_API_KEY;
-const PROXY_BASE_URL = '/api/aladin/ttb/api/ItemSearch.aspx';
+const PROXY_BASE_URL = '/api/aladin-search';
 
 // 알라딘 API로부터 받는 도서 정보 인터페이스
 export interface AladinBook {
@@ -29,12 +31,6 @@ export interface AladinBook {
  * @param maxResults 가져올 최대 결과 수 (기본값: 20)
  */
 export const searchAladinBooks = async (query: string, maxResults: number = 20): Promise<AladinBook[]> => {
-    // API 키가 없으면 검색을 진행하지 않습니다.
-    if (!ALADIN_API_KEY) {
-        console.error("알라딘 API 키가 설정되지 않았습니다. .env 파일을 확인해주세요.");
-        return [];
-    }
-
     try {
         /**
          * axios를 사용하여 알라딘 API (프록시를 통해) 호출
@@ -42,7 +38,7 @@ export const searchAladinBooks = async (query: string, maxResults: number = 20):
          */
         const response = await axios.get(PROXY_BASE_URL, {
             params: {
-                ttbkey: ALADIN_API_KEY,      // 인증용 키
+                ttbkey: ALADIN_API_KEY || undefined, // 로컬 개발용 키, 배포에서는 서버리스 함수의 ALADIN_API_KEY 사용
                 Query: query,                // 검색어
                 QueryType: 'Keyword',        // 검색 유형 (키워드)
                 MaxResults: maxResults,      // 최대 결과 수
@@ -54,8 +50,10 @@ export const searchAladinBooks = async (query: string, maxResults: number = 20):
         });
 
         // 응답 데이터에서 'item' 배열이 있는지 확인하고 데이터를 가공합니다.
-        if (response.data && response.data.item) {
-            return response.data.item.map((item: any) => ({
+        const items = response.data?.items || response.data?.item;
+
+        if (Array.isArray(items)) {
+            return items.map((item: any) => ({
                 title: item.title,
                 author: item.author,
                 pubDate: item.pubDate,
